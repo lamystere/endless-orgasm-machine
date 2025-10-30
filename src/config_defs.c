@@ -1,13 +1,13 @@
 #include "config_defs.h"
-#include "SDHelper.h"
+//#include "SDHelper.h"
 #include "api/broadcast.h"
 #include "config.h"
-#include "eom-hal.h"
+#include "eom-hal-esp32.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "nvs.h"
 #include "polyfill.h"
-#include "ui/toast.h"
+//#include "ui/toast.h"
 #include "util/i18n.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #define MAX_FILE_PATH_LEN 120
 
@@ -78,8 +79,9 @@ defaults:
 
     if (err == ESP_ERR_NVS_NOT_FOUND || err == ESP_ERR_NOT_FOUND) {
         char path[CONFIG_PATH_MAX + 1] = { 0 };
-        SDHelper_getAbsolutePath(path, CONFIG_PATH_MAX, CONFIG_FILENAME);
-        err = config_load_from_sd(path, &Config);
+
+        //SDHelper_getAbsolutePath(path, CONFIG_PATH_MAX, CONFIG_FILENAME);
+        err = config_load_from_sd(CONFIG_FILENAME, &Config);
     }
 
     if (err != ESP_OK) {
@@ -92,9 +94,9 @@ defaults:
         config_load_default(&Config);
 
         if (err == ESP_ERR_INVALID_ARG) {
-            ui_toast("%s", _("Configuration file corrupt. Default values will be used."));
+            //ui_toast("%s", _("Configuration file corrupt. Default values will be used."));
         } else {
-            ui_toast("%s", _("Configuration not found. Default values will be used."));
+            //ui_toast("%s", _("Configuration not found. Default values will be used."));
         }
     }
 
@@ -145,20 +147,21 @@ static void _migrate_config(cJSON* root) {
     switch (ret) {
     case MIGRATION_COMPLETE:
         config_enqueue_save(1);
-        ui_toast("%s", _("Your config file has updated to work with this version."));
+        //ui_toast("%s", _("Your config file has updated to work with this version."));
         return;
 
     case MIGRATION_ERR_TOO_NEW:
-        ui_toast(
-            "%s",
-            _("Your config file was created with a newer firmware version and cannot be used.")
-        );
+        // ui_toast(
+        //     "%s",
+        //     _("Your config file was created with a newer firmware version and cannot be used.")
+        // );
         break;
 
     case MIGRATION_ERR_BAD_DATA:
-        ui_toast(
-            "%s", _("There was an error updating your config file to work with this version.")
-        );
+        // ui_toast(
+        //     "%s", _("There was an error updating your config file to work with this version.")
+        // );
+        //);
         break;
 
     default: return;
@@ -248,7 +251,7 @@ bool atob(const char* a) {
     );
 }
 
-// Here There Be Dragons
+// Here There Be Dragons Indeed
 
 esp_err_t config_load_from_sd(const char* path, config_t* cfg) {
     esp_err_t err = ESP_OK;
@@ -328,10 +331,10 @@ cleanup:
 }
 
 esp_err_t config_save_to_sd(const char* path, config_t* cfg) {
-    if (eom_hal_get_sd_size_bytes() <= 0) {
-        ESP_LOGW(TAG, "Request to save to SD without SD present.");
-        return ESP_ERR_NO_MEM;
-    }
+    //if (eom_hal_get_sd_size_bytes() <= 0) {
+        // ESP_LOGW(TAG, "Request to save to SD without SD present.");
+        // return ESP_ERR_NO_MEM;
+    //}
 
     if (!xSemaphoreTake(sFileMutex, portMAX_DELAY)) {
         ESP_LOGW(TAG, "Failed to take file lock for config save.");
@@ -390,11 +393,12 @@ esp_err_t config_save_to_sd(const char* path, config_t* cfg) {
     return ESP_OK;
 }
 
+
 void config_load_default(config_t* cfg) {
     ESP_LOGI(TAG, "Loading default config...");
     cJSON* root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "$version", SYSTEM_CONFIG_FILE_VERSION);
     json_to_config(root, cfg);
-    SDHelper_getAbsolutePath(cfg->_filename, CONFIG_PATH_MAX, CONFIG_FILENAME);
+    strcpy(cfg->_filename, CONFIG_FILENAME);
     cJSON_Delete(root);
 }

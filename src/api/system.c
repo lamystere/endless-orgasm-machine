@@ -1,5 +1,5 @@
 #include "api/index.h"
-#include "eom-hal.h"
+//#include "eom-hal.h"
 #include "system/websocket_handler.h"
 #include "version.h"
 
@@ -26,11 +26,11 @@ static const websocket_command_t cmd_system_time_s = {
 
 static command_err_t cmd_system_info(cJSON* command, cJSON* response, websocket_client_t* client) {
     char buf[64] = { 0 };
-    eom_hal_get_device_serial(buf, 64);
+    //eom_hal_get_device_serial(buf, 64);
 
-    cJSON_AddStringToObject(response, "device", "Edge-o-Matic 3000");
+    cJSON_AddStringToObject(response, "device", "Endless Orgasm Machine");
     cJSON_AddStringToObject(response, "serial", buf);
-    cJSON_AddStringToObject(response, "hwVersion", eom_hal_get_version());
+    //cJSON_AddStringToObject(response, "hwVersion", eom_hal_get_version());
     cJSON_AddStringToObject(response, "fwVersion", EOM_VERSION);
     return CMD_OK;
 }

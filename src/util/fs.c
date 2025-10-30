@@ -1,5 +1,5 @@
 #include "util/fs.h"
-#include "eom-hal.h"
+//#include "eom-hal.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include <string.h>
@@ -74,7 +74,7 @@ size_t fs_read_file(const char* path, char** data) {
 }
 
 const char* fs_sd_root(void) {
-    return eom_hal_get_sd_mount_point();
+    return (const char*)'/';
 }
 
 int fs_strcmp_ext(const char* path, const char* extension) {

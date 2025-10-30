@@ -19,7 +19,7 @@ typedef struct running_average {
 
 void running_average_init(running_average_t** ra, size_t window_size);
 void running_average_add_value(running_average_t* ra, uint16_t value);
-uint16_t running_avergae_get_average(running_average_t* ra);
+uint16_t running_average_get_average(running_average_t* ra);
 void running_average_dispose(running_average_t* ra);
 
 #ifdef __cplusplus

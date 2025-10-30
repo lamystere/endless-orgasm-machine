@@ -13,19 +13,38 @@ extern "C" {
 #define CONFIG_PATH_MAX 64
 
 // This is just a default, others can be loaded after boot.
-static const char* CONFIG_FILENAME = "/config.json";
+static const char* CONFIG_FILENAME = "/spiffs/config.json";
 
 // String Lengths
 #define WIFI_SSID_MAX_LEN 64
 #define WIFI_KEY_MAX_LEN 64
 
-// Some Experiments
-// #define EOM_BETA 1
-#define I18N_USE_CJSON_DICT 1
+#define GATTS_SERVICE1_UUID        0x6000
+#define GATTS_OUTPUT1_CHAR_UUID    0x6031
+#define GATTS_OUTPUT2_CHAR_UUID     0x1903
+#define GATTS_INPUT1_CHAR_UUID      0x6003
+#define GATTS_INPUT2_CHAR_UUID     0x6004
 
-// System Defaults
-static const char* REMOTE_UPDATE_URL =
-    "http://us-central1-maustec-io.cloudfunctions.net/gh-release-embedded-bridge";
+#define PRESSURE_PIN 14
+#define LED_PIN 2 // On-board LED for ESP32 dev boards
+
+#define EOM_HAL_PRESSURE_MAX 0x0FFF // 12 bits ADC reading is standard for esp32
+
+#define DEFAULT_AMBIENT_RESSURE 0
+#define DEFAULT_PRESSURE_SENSITIVITY 64
+
+enum command_err {
+    CMD_FAIL = -1,
+    CMD_OK = 0,
+    CMD_ARG_ERR = 1,
+    CMD_SUBCOMMAND_NOT_FOUND = 253,
+    CMD_SUBCOMMAND_REQUIRED = 254,
+    CMD_NOT_FOUND = 255,
+};
+
+typedef enum command_err command_err_t;
+
+//typedef command_err_t (*command_func_t)(int argc, char** argv, console_t* console);
 
 // Vibration Modes
 // See vibration_mode_controller.h for more.
@@ -94,7 +113,7 @@ struct config {
     // Enable SSL server, which will eat all your RAM!
     bool use_ssl;
     // Path to cacert.pem, which will be needed to run SSL server.
-    char* ssl_cacert_path;
+    char* ssl_servercert_path;
     // Path to prvtkey.pem, which will be needed to run SSL server.
     char* ssl_prvtkey_path;
     // Local hostname for your device.
@@ -106,12 +125,12 @@ struct config {
     uint8_t motor_max_speed;
     // The minimum speed the motor will start at in automatic mode.
     uint8_t motor_start_speed;
-    // Minimum time (ms) after edge detection before resuming stimulation.
+    // Minimum time (s) after edge detection before resuming stimulation.
     int edge_delay;
-    // Maximum time (ms) that can be added to the edge delay before resuming stimulation. A random
+    // Maximum time (s) that can be added to the edge delay before resuming stimulation. A random
     // number will be picked between 0 and this setting each cycle. 0 to disable.
     int max_additional_delay;
-    // Time (ms) after stimulation starts before edge detection is resumed.
+    // Time (s) after stimulation starts before edge detection is resumed.
     int minimum_on_time;
     // Number of samples to take an average of. Higher results in lag and lower resolution!
     uint8_t pressure_smoothing;
@@ -157,7 +176,7 @@ struct config {
     //= Internal System Configuration (Update only if you know what you're doing)
 
     // Remote update server URL. You may change this to OTA update other versions.
-    char* remote_update_url;
+    //char* remote_update_url;
 };
 
 typedef struct config config_t;

@@ -191,17 +191,17 @@ esp_err_t websocket_handler(httpd_req_t* req) {
             goto cleanup;
         }
 
-        ESP_LOGI(TAG, "Got packet type 0x%02x", ws_pkt.type);
+        ESP_LOGD(TAG, "Got packet type 0x%02x", ws_pkt.type);
     }
 
     if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE) {
-        ESP_LOGI(TAG, "Client requesting CLOSE");
+        ESP_LOGD(TAG, "Client requesting CLOSE");
     } else if (ws_pkt.type == HTTPD_WS_TYPE_PING) {
-        ESP_LOGI(TAG, "Received PING message");
+        ESP_LOGD(TAG, "Received PING message");
     } else if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
-        ESP_LOGI(TAG, "Received PONG message");
+        ESP_LOGD(TAG, "Received PONG message");
     } else if (ws_pkt.type == HTTPD_WS_TYPE_TEXT) {
-        ESP_LOGI(TAG, "data: %s", ws_pkt.payload);
+        ESP_LOGD(TAG, "data: %s", ws_pkt.payload);
         httpd_ws_frame_t resp_pkt;
         memset(&resp_pkt, 0, sizeof(httpd_ws_frame_t));
         resp_pkt.type = HTTPD_WS_TYPE_TEXT;
@@ -224,7 +224,7 @@ esp_err_t websocket_handler(httpd_req_t* req) {
             resp_pkt.payload = (uint8_t*)cJSON_PrintUnformatted(response);
             resp_pkt.len = strlen((char*)resp_pkt.payload);
 
-            ESP_LOGI(TAG, "Transmitting response: %s", resp_pkt.payload);
+            ESP_LOGD(TAG, "Transmitting response: %s", resp_pkt.payload);
             ret = httpd_ws_send_frame(req, &resp_pkt);
         }
 

@@ -8,8 +8,8 @@ extern "C" {
 #endif
 
 typedef struct vibration_pattern_step {
-    int motor_speed;
-    float hold_ticks;
+    uint8_t motor_speed;
+    uint8_t hold_ticks;
     bool ramp_to;
 } vibration_pattern_step_t;
 

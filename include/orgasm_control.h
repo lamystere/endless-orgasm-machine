@@ -12,9 +12,9 @@ extern "C" {
 
 // This enum has an associated strings array in orgasm_control.c
 typedef enum orgasm_output_mode {
-    OC_MANUAL_CONTROL,
-    OC_AUTOMAITC_CONTROL,
-    OC_ORGASM_MODE,
+    OC_MANUAL,
+    OC_AUTOMATIC,
+    OC_ORGASM,
     _OC_MODE_MAX,
     _OC_MODE_ERROR = -1
 } orgasm_output_mode_t;
@@ -31,14 +31,20 @@ void orgasm_control_tick(void);
 uint16_t orgasm_control_get_arousal(void);
 float orgasm_control_get_arousal_percent(void);
 uint8_t orgasm_control_get_motor_speed(void);
-float orgasm_control_get_motor_speed_percent(void);
+int orgasm_control_get_motor_speed_percent(void);
 uint16_t orgasm_control_get_last_pressure(void);
 uint16_t orgasm_control_get_average_pressure(void);
 oc_bool_t orgasm_control_updated(void);
 void orgasm_control_clear_update_flag(void);
 void orgasm_control_increment_arousal_threshold(int threshold);
+void orgasm_control_set_motor_speed(uint8_t speed);
 void orgasm_control_set_arousal_threshold(int threshold);
 int orgasm_control_get_arousal_threshold(void);
+int orgasm_control_get_orgasm_count(void);
+int orgasm_control_get_arousal_sensitivity(void);
+oc_bool_t orgasm_control_in_cooldown(void);
+void orgasm_control_reset_denied(void);
+void orgasm_control_trigger_arousal(void);
 
 // Set Controls
 void orgasm_control_control_motor(orgasm_output_mode_t control);

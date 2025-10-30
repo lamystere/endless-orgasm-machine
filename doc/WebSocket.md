@@ -1,6 +1,6 @@
 # WebSocket Communication
 
-The Edge-o-Matic 3000 serves as a WebSocket host for streaming data over wireless networks. The NoGasm UI project makes 
+The Endless Orgasm Machine serves as a WebSocket host for streaming data over wireless networks. The NoGasm UI project makes 
 use of this, but you are free to develop your own interface.
 
 The WebSocket interface uses JSON serialization for both sending and receiving packets. The structure of a payload sent 
@@ -39,7 +39,7 @@ filter duplicate responses.
 
 ## Server Commands
 
-These commands are recognized by the WebSocket server running on the Edge-o-Matic 3000:
+These commands are recognized by the WebSocket server running on the Endless Orgasm Machine:
  
 
 ### `configSet`
@@ -216,6 +216,9 @@ Current SD card status.
 }
 ```
  
+{"streamReadings": null}
+
+{"configSet": { "pressure": 255 }}
 
 ### `readings`
 A collection of current readings and device status. This is streamed at the global update frequency, unless disabled, 

@@ -7,7 +7,6 @@ extern "C" {
 
 void api_broadcast_config(void);
 void api_broadcast_readings(void);
-void api_broadcast_storage_status(void);
 void api_broadcast_network_status(void);
 
 #ifdef __cplusplus

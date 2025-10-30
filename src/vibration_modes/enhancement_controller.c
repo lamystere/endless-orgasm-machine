@@ -20,7 +20,7 @@ static float increment(void) {
 
     if (state.stopped) {
         return state.motor_speed +
-               calculate_increment(Config.motor_max_speed, 0, Config.edge_delay);
+               calculate_increment(Config.motor_max_speed, 0, Config.edge_delay * 1000);
     }
 
     float speed_diff = Config.motor_max_speed - Config.motor_start_speed;

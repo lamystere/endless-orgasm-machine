@@ -8,7 +8,7 @@
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
-typedef uint8_t byte;
+//typedef uint8_t byte;
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,8 +1,8 @@
 #include "config.h"
-#include "SDHelper.h"
+//#include "console.h"
 #include "api/index.h"
 #include "config_defs.h"
-#include "eom-hal.h"
+#include "eom-hal-esp32.h"
 #include "system/websocket_handler.h"
 
 static command_err_t cmd_config_list(cJSON* command, cJSON* response, websocket_client_t* client) {

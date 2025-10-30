@@ -1,81 +1,47 @@
-# Edge-o-Matic 3000 - An Automated Orgasm Denial Device
+# Endless Orgasm Machine - An Automated Orgasm Denial Device for ESP32
 
 Using an inflatable butt plug to detect pressure changes indicative of pelvic floor contractions, this
 software, and associated hardware, is used to detect when the user is approaching orgasm and control
-stimulation accordingly. The net result: automated edging and orgasm denial.
+stimulation accordingly. The net result: automated edging and orgasm denial.  It can also be used to allow orgasms then
+determine when the refractory period has subsided enough to begin the next round of pleasuring. 
+
+## Setup 
+- Install [VSCode](https://code.visualstudio.com/) with the [PlatformIO](https://platformio.org/) extension
+- Open this repo and let all the PlatformIO dependencies download
+- Configure your wifi ssid and password at the top of [data/config.json](data/config.json)
+- Under ```PlatformIO -> Project Tasks -> esp32dev -> Platform``` choose ```Build Filesystem Image``` then ```Upload Filesystem Image```
+- Under ```PlatformIO -> Project Tasks -> esp32dev -> General``` choose ```Build``` then eventually ```Upload and Monitor```
+- Watch for your device's IP address to be displayed in the monitor window
 
 ## Web UI
 
-Edge-o-Matic 3000 devices support a WebSocket communication channel to be used on a web UI. The current Web UI can be accessed
-at [link.maustec.io](http://link.maustec.io).
-For control outside your Local Area Network, please consider a port-forwarding software such as Ngrok. You will have to permit insecure content
-for that domain within Chrome to be able to connect your device while the page is loaded over HTTPS. This cannot be done automatically for you.
-A remote bridge for Maus-Link compatible devices is in development and should be released Q4 2024. This will allow internet control of genuine
-Maus-Tec products.
+[The UI](eomui/README.md) is hosted on the ESP32 itself and can be found by visiting the IP address of your device using https.  You can watch the serial output to determine the IP or use your own means.  If you enable a screen the IP address will be displayed on it.  
+
+Example: If the IP is ```192.168.1.2``` you should visit ```https://192.168.1.2/ui``` (you will need to accept the security warning for self-signed certificates).  It will automatically open a websocket connection to that endpoint at ```https://192.168.1.2/```  
+
+## Wait, isn't this the Edge-o-Matic 3000?
+
+This is a fork of that project with a different set of goals.  The main goal is to make the project accessible to the maker community by keeping the hardware and software simple and DIY friendly - like [the original Nogasm](https://github.com/nogasm/nogasm) that started it all was.  The Edge-o-Matic code is designed around selling well-made but proprietary hardware and is [locked into it through closed-source code](https://github.com/MausTec/eom-hal-dist), crippling attempts to use it with DIY hardware.  It also included a lot of code to connect to related devices and services.
+
+This project is vastly simplified.  You can try it using almost any modern ESP32 device with no additional customization.  You will need to connect a pressure sensor and inflatable buttplug to make it functional, but that's it.  It's meant to be operated wirelessly rather than through the additional hardware of a screen, knob, LEDs, network jack, etc.
 
 ## WebSocket API
 
 Documentation for the WebSocket API can be found in [doc/WebSocket.md](doc/WebSocket.md).
 
-## Configuration
+## BLE Usage
+Using Xtoys you can connect to the EOM and let it control your other Xtoys devices.  It emulates a [MonsterPub Mr. Devil Kegel (since renamed)](https://monsterpub.com/products/mp2-u-shaped-remote-egg-with-kegel).  The "pressure" reading corresponds to the "pleasure" output of the EOM.  Vibrator strength can be controlled in manual mode.  
 
-If you have hardware already, please see `examples/config.json` or your own `config.json` file
-shipped with your SD card. Note that this JSON document does not support comment preprocessing,
-and is automatically generated. Here is a quick summary of config variables:
+Why Mr Devil?  Because it's one of the few BT devices in Xtoys that has 2 way communication and high resolution (16 bit).  If you wish to connect Xtoys to the EOM over wifi you can choose the Edge-o-matic 3000 and it is backwards compatible.  This is less useful because Xtoys only chose to implement "arousal" and "pressure" inputs, so all the logic that goes into calculating the amount of pleasure is ignored.  
 
-|Key|Type|Default|Note|
-|---|----|---|---|
-|`wifi_ssid`|String|""|Your WiFi SSID.|
-|`wifi_key`|String|""|Your WiFi Password.|
-|`wifi_on`|Boolean|false|Enable WiFi and the Websocket server. Cannot be enabled if AzureFang is on.|
-|`bt_display_name`|String|"Edge-o-Matic 3000"|AzureFang* device name, you might wanna change this.|
-|`bt_on`|Boolean|false|Enable AzureFang connectivity. Cannot be enabled if WiFi is on.|
-|`force_bt_coex`|Boolean|false|Force AzureFang and WiFi at the same time**.|
-|`led_brightness`|Byte|128|Status LED maximum brightness.|
-|`websocket_port`|Int|80|Port to listen for incoming Websocket connections.|
-|`use_ssl`|Boolean|false|Enable SSL server, which will eat all your RAM!|
-|`hostname`|String|"eom3k"|Local hostname for your device.|
-|`motor_start_speed`|Byte|10|The minimum speed the motor will start at in automatic mode.|
-|`motor_max_speed`|Byte|128|Maximum speed for the motor in auto-ramp mode.|
-|`motor_ramp_time_s`|Int|30|The time it takes for the motor to reach Motor Max Speed in automatic mode.|
-|`edge_delay`|Int|10000|Minimum time (ms) after edge detection before resuming stimulation.|
-|`max_additional_delay`|Int|10000|Maximum time (ms) that can be added to the edge delay before resuming stimulation. A random number will be picked between 0 and this setting each cycle. 0 to disable.|
-|`minimum_on_time`|Int|1000|Time (ms) after stimulation starts before edge detection is resumed.|
-|`screen_dim_seconds`|Int|10|Time, in seconds, before the screen dims. 0 to disable.|
-|`screen_timeout_seconds`|Int|0|Time, in seconds, before the screen turns off. 0 to disable.|
-|`reverse_menu_scroll`|Boolean|false|Reverse the direction of the scroll wheel when navigating menus.|
-|`pressure_smoothing`|Byte|5|Number of samples to take an average of. Higher results in lag and lower resolution!|
-|`classic_serial`|Boolean|false|Output continuous stream of arousal data over serial for backwards compatibility with other software.|
-|`sensitivity_threshold`|Int|600|The arousal threshold for orgasm detection. Lower values stop sooner.|
-|`update_frequency_hz`|Int|50|Update frequency for pressure readings and arousal steps. Higher = crash your serial monitor.|
-|`sensor_sensitivity`|Byte|128|Analog pressure prescaling. Please see instruction manual.|
-|`use_average_values`|Boolean|false|Use average values when calculating arousal. This smooths noisy data.|
-|`vibration_mode`|VibrationMode|RampStop|Vibration Mode for main vibrator control.|
-|`use_post_orgasm`|Boolean|false|Use post-orgasm torture mode and functionality.|
-|`clench_pressure_sensitivity`|Int|200|Minimum additional Arousal level to detect clench. See manual.|
-|`clench_time_to_orgasm_ms`|Int|1500|Threshold variable that is milliseconds count of clench to detect orgasm. See manual.|
-|`clench_detector_in_edging`|Boolean|false|Use the clench detector to adjust Arousal. See manual.|
-|`auto_edging_duration_minutes`|Int|30|How long to edge before permiting an orgasm.|
-|`post_orgasm_duration_seconds`|Int|10|How long to stimulate after orgasm detected.|
-|`edge_menu_lock`|Boolean|false|Deny access to menu starting in the edging session.|
-|`post_orgasm_menu_lock`|Boolean|false|Deny access to menu starting after orgasm detected.|
-|`max_clench_duration_ms`|Int|3000|Duration the clench detector can raise arousal if clench detector turned on in edging session.|
-|`clench_time_threshold_ms`|Int|900|Threshold variable that is milliseconds counts to detect the start of clench.|
+If you have the skills you could control other toys through bluetooth with your own controller rather than using Xtoys, but its popular and free.
 
-
-\* AzureFang refers to a common wireless technology that is blue and involves chewing face-rocks. However, the
-   trademark holders of this technology require the name to be licensed, so we're totally just using AzureFang.
-
-\** AzureFang and WiFi coexistance is EXPERIMENTAL and may cause system instability. If your device resets with
-    both of these turned on, please turn them back off. Additionally, it might be helpful to post some info in
-    discord of the last serial dump on the console when your device reset, assuming you have a console connected.
-   
 ### Vibration Modes:
 
 |ID|Name|Description|
 |---|---|---|
 |1|Ramp-Stop|Vibrator ramps up from set min speed to max speed, stopping abruptly on arousal threshold crossing.|
-|2|Depletion|Vibrator speed ramps up from min to max, but is reduced as arousal approaches threshold.|
+|2|Depletion (default)|Vibrator speed ramps up from min to max, but is reduced as arousal approaches threshold.|
 |3|Enhancement|Vibrator speed ramps up as arousal increases, holding a peak for ramp_time.|
 |0|Global Sync|When set on secondary vibrators, they will follow the primary vibrator speed.|
 
@@ -86,38 +52,54 @@ and is automatically generated. Here is a quick summary of config variables:
 |5-15|Turn off stimulation after amount of seconds - Normal orgasm|
 |16-4095|Turn off stimulation after amount of seconds - Post orgasm Torture|
 
-Post-Orgasm and clench detector modules are community contributed features. While we will do our best to provide support
-for these, we kindly request that you ask questions related to this in Discord under Firmware Development and not
-Customer Support. Thank you for your understanding.
-
 ## Hardware
 
-Hardware builds for this project can be purchased from Maus-Tec Electronics, at [maustec.io/eom](https://maustec.io/eom).
+This can be tested on almost any ESP32 device without any extra hardware by touching the pressure sensor pin.  This will simulate a pressure sensor being squeezed.  To actually play with it you will need to attach a pressure sensor and plug.  The [MPX5100DP](https://www.digikey.com/en/products/detail/nxp-usa-inc/MPX5100DP/464060) is the sensor it was designed around but anything capable of 15psi or greater should work whether analog or SPI.  Plug the port of the pressure sensor into the air hose for the butt plug.  
 
-Hardware development and assembly helps keep pizza in the freezer and a roof over the head of the maintainer.
-Your support helps a small business grow into something neat, and ensures future devices like this can continue
-to be produced. Genuine hardware purchases also ensure continued maintenance and support can be provided for the project.
+To get it to resemble [the original Nogasm device](https://github.com/nogasm/nogasm) you can then add a [12v power supply](https://www.amazon.com/ACEIRMC-Battery-Plastic-Storage-Connect/dp/B0986RMKBJ) and [charger](https://www.amazon.com/Battery-Charger-Lithium-Display-RC123A/dp/B0CRKSFTK9), a [simple transistor](https://www.amazon.com/ALLECIN-IRF4905-Transistors-IRF4905PBF-Transistor/dp/B0CBKGJT9N) or more protected [motor controller](https://www.amazon.com/High-Power-Adjustment-Electronic-Controller-Brightness/dp/B0DZP1NCVW), a [flyback diode](https://www.amazon.com/15SQ045-Diodes-Schottky-Blocking-Silicon/dp/B0D4F2WVS5), and [vibrator motor](https://www.amazon.com/RPTCOTU-R555-Vibration-Motor-Electrodynamic/dp/B0CSYWK5KQ).  You could share that power supply to the esp32 [through a buck converter](https://www.amazon.com/Regulator-Reducer-Converter-Aircraft-MP1584EN/dp/B0B779ZYN1) to make the whole thing wireless.  That's it.  You can set this all up to comfortably attach to the buttplug rather than having wires and tubes dangling out.  
 
-The User Guide for the hardware can be downloaded at [doc/Edge-o-Matic_UserGuide.docx](doc/Edge-o-Matic_UserGuide.docx).
-
-### That RJ45 Jack
-
-**The RJ45 Jack IS NOT ETHERNET!** This is the Maus-Bus Accessory Port, used to connect various Maus-Bus compatible devices
-to build up a network of accessories and dongles to customize your play experience. Please only connect authorized Maus-Bus
-accessories to this port. Unauthorized or counterfeit devices can damage your Edge-o-Matic. Do not connect it to an ethernet
-jack. This is not for internet.
-
-# Contributions
-
-Any changes to configuration values should be linted. Run `ruby bin/config_lint.rb` to check documentation, serializers
-and structs for consistency.
-
-Thanks for readin'!
+### Customization suggestions 
+- You can use xtoys as a hub to ramp up any number of vibrators, strokers, or e-stim units in sync with the EOM
+- You can use an inexpensive [Vibrating inflatable buttplug](https://www.amazon.com/Lovehoney-Black-Inflatable-Vibrating-Back/dp/B092VVXM63) and remove its control box to wire it directly to the EOM and power supply.  A [non-vibrating plug](https://www.amazon.com/Inflatable-Expandable-Stimulator-Beginners-Detachable/dp/B0DSPKVPM1) is even less expensive if you'll be controlling your toys wirelessly.
+- If the pressure sensor is too inconvenient to source you could use a [standard car exhaust pressure sensor](https://www.amazon.com/dp/B0997VKYQ9).  The pin with the notch is Vin, middle is ground, third is Vout.
+- If you use an ESP32 board with an integrated screen ([Example 1](https://www.amazon.com/ideaspark-Development-Integrated-Wireless-Micropython), [Example 2](https://www.amazon.com/Waveshare-Development-Frequency-Single-Core-Processor/dp/B0DHTMYTCY)) you can enable the screen in [include/config.h](include/config.h) to see the IP of the device.
+- As an alternative to a vibrating buttplug you can use [a plug made for enema play](https://www.amazon.com/Inflatable-Congestion-Cleaning-Expansion-Beginner/dp/B0CZRLPLQC) and pass a wire through the middle [to a vibrator on top](https://www.amazon.com/dp/B0024XI1LG)
+- Someone posted build that used tubing wrapped around a 3d printed shaft that also housed the electronics.  It was a neat new twist to the inflatable plug since the tubing reacted to pressure just like an inflatable.
+- You could put in a higher range pressure sensor if you prefer to inflate the plug to more intense levels.  The measurement is of change in pressure, not overall pressure.
+- You could order a [prebuilt PCB like is used for the Nogasm-esp32](https://github.com/Mathew3000/nogasm-esp32) 
+- There really are a ridiculous number of implementations of the nogasm concept from the last decade...you should do some googling.
 
 
 
----
+### To-do
+- Stand-alone wifi option
+- ui and websockets using same endpoint if possible
+- 2nd motor support from UI
+- pinouts and schematics for suggested hardware
+- finish integrated screen support
+- finish bt motor control
+- chart glitch on left side at startup
+- X axis on chart
+- Put some effort into UI styling
+- LED and encoder options?
+- UI crashing with rapid motor speed adjustments?
+- Less BT logging
+- Running average math seems off
+- Implement patterns?
+- Doesn't handle more than 2 clients well
 
-Maus-Bus and Maus-Link are trademarks of Maus-Tec LLC. Edge-o-Matic is a registered trademark of Maus-Tec LLC. If you are
-a 3rd party hardware manufacturer looking to certify your Maus-Bus connected device for use with the Edge-o-Matic, we 
-encourage you to contact info@maustec.io and our friendly customer support robot will be glad to assist!
+### Notable differences from Edge-o-matic
+- Not tied to specific hardware
+- UI hosted on device
+- UI is phone-friendly
+- communicates with xtoys via BLE
+- defaults to automatic orgasm denial in ramp-stop mode
+- currently doesn't connect to lovense devices directly
+- screen is optional
+- SD card requirement removed
+- menu system removed
+- console system removed
+- hardwire networked device support removed 
+- edge times are in seconds
+- smaller build size
+

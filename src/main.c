@@ -1,43 +1,136 @@
-
-#include "accessory_driver.h"
+//#include "accessory_driver.h"
 #include "api/broadcast.h"
-#include "bluetooth_driver.h"
-#include "bluetooth_manager.h"
+//#include "bluetooth_driver.h"
 #include "config.h"
 #include "config_defs.h"
-#include "console.h"
-#include "eom-hal.h"
+//#include "console.h"
+#include "eom-hal-esp32.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+//#include "bluetooth_gatt_server.h"
+#include "gatt_svc.h"
 #include "orgasm_control.h"
 #include "polyfill.h"
-#include "system/action_manager.h"
+//#include "system/action_manager.h"
 #include "system/http_server.h"
-#include "ui/toast.h"
-#include "ui/ui.h"
-#include "util/i18n.h"
+////#include "ui/toast.h"
+//#include "ui/ui.h"
+//#include "util/i18n.h"
 #include "version.h"
 #include "wifi_manager.h"
 #include <esp_https_ota.h>
 #include <esp_ota_ops.h>
 #include <esp_system.h>
 #include <time.h>
+#include <nvs_flash.h>
+#include <esp_spiffs.h>
 
-static const char* TAG = "main";
 
-void storage_init() {
-    long long int cardSize = eom_hal_get_sd_size_bytes();
+char* TAG = "main";
 
-    if (cardSize == -1) {
-        ui_set_icon(UI_ICON_SD, -1);
-        config_load_default(&Config);
+
+void spiffs_init() {
+        ESP_LOGI(TAG, "Initializing SPIFFS");
+
+    esp_vfs_spiffs_conf_t conf = {
+      .base_path = "/spiffs",
+      .partition_label = "spiffs",
+      .max_files = 5,
+      .format_if_mount_failed = true
+    };
+
+    // Use settings defined above to initialize and mount SPIFFS filesystem.
+    // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount or format filesystem");
+        } else if (ret == ESP_ERR_NOT_FOUND) {
+            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+        }
         return;
     }
+    ESP_LOGI(TAG, "SPIFFS registered");
 
-    ui_set_icon(UI_ICON_SD, SD_ICON_PRESENT);
-    printf("SD Card Size: %llu MB\n", cardSize / 1000000ULL);
 
-    config_init();
+    // ESP_LOGI(TAG, "Performing SPIFFS_check().");
+    // ret = esp_spiffs_check(conf.partition_label);
+    // if (ret != ESP_OK) {
+    //     ESP_LOGE(TAG, "SPIFFS_check() failed (%s)", esp_err_to_name(ret));
+    //     return;
+    // } else {
+    //     ESP_LOGI(TAG, "SPIFFS_check() successful");
+    // }
+
+    // size_t total = 0, used = 0;
+    // ret = esp_spiffs_info(conf.partition_label, &total, &used);
+    // if (ret != ESP_OK) {
+    //     ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s). Formatting...", esp_err_to_name(ret));
+    //     esp_spiffs_format(conf.partition_label);
+    //     return;
+    // } else {
+    //     ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+    // }
+
+    // // Check consistency of reported partition size info.
+    // if (used > total) {
+    //     ESP_LOGW(TAG, "Number of used bytes cannot be larger than total. Performing SPIFFS_check().");
+    //     ret = esp_spiffs_check(conf.partition_label);
+    //     // Could be also used to mend broken files, to clean unreferenced pages, etc.
+    //     // More info at https://github.com/pellepl/spiffs/wiki/FAQ#powerlosses-contd-when-should-i-run-spiffs_check
+    //     if (ret != ESP_OK) {
+    //         ESP_LOGE(TAG, "SPIFFS_check() failed (%s)", esp_err_to_name(ret));
+    //         return;
+    //     } else {
+    //         ESP_LOGI(TAG, "SPIFFS_check() successful");
+    //     }
+    // }
+
+    // // Use POSIX and C standard library functions to work with files.
+    // // First create a file.
+    // ESP_LOGI(TAG, "Opening file");
+    // FILE* f = fopen("/spiffs/hello.txt", "w");
+    // if (f == NULL) {
+    //     ESP_LOGE(TAG, "Failed to open file for writing");
+    //     return;
+    // }
+    // fprintf(f, "Hello World!\n");
+    // fclose(f);
+    // ESP_LOGI(TAG, "File written");
+
+    // // Check if destination file exists before renaming
+    // struct stat st;
+    // if (stat("/spiffs/foo.txt", &st) == 0) {
+    //     // Delete it if it exists
+    //     unlink("/spiffs/foo.txt");
+    // }
+
+    // // Rename original file
+    // ESP_LOGI(TAG, "Renaming file");
+    // if (rename("/spiffs/hello.txt", "/spiffs/foo.txt") != 0) {
+    //     ESP_LOGE(TAG, "Rename failed");
+    //     return;
+    // }
+
+    // // Open renamed file for reading
+    // ESP_LOGI(TAG, "Reading file");
+    // f = fopen("/spiffs/foo.txt", "r");
+    // if (f == NULL) {
+    //     ESP_LOGE(TAG, "Failed to open file for reading");
+    //     return;
+    // }
+    // // char line[64];
+    // // fgets(line, sizeof(line), f);
+    // fclose(f);
+    // // strip newline
+    // char* pos = strchr(line, '\n');
+    // if (pos) {
+    //     *pos = '\0';
+    // }
+    // ESP_LOGI(TAG, "Read from file: '%s'", line);
 }
 
 static void orgasm_task(void* args) {
@@ -48,23 +141,22 @@ static void orgasm_task(void* args) {
     // }
 }
 
+static void ble_task(void* args) {
+    // for (;;) {   
+    send_output1();
+
+    vTaskDelay(1);
+    // }
+}
+
 static void hal_task(void* args) {
     // for (;;) {
-    eom_hal_tick();
+    //eom_hal_tick();
 
-    // vTaskDelay(1);
+     vTaskDelay(1);
     // }
 }
 
-static void ui_task(void* args) {
-    // for (;;) {
-    ui_tick();
-    // UI.tick();
-    // Page::DoLoop();
-
-    // vTaskDelay(1);
-    // }
-}
 
 static void loop_task(void* args) {
     // for (;;) {
@@ -79,9 +171,9 @@ static void loop_task(void* args) {
         // Update Icons
         if (wifi_manager_get_status() == WIFI_MANAGER_CONNECTED) {
             int8_t rssi = wifi_manager_get_rssi();
-            ui_set_icon(UI_ICON_WIFI, WIFI_ICON_STRONG_SIGNAL);
+            //ui_set_icon(UI_ICON_WIFI, WIFI_ICON_STRONG_SIGNAL);
         } else {
-            ui_set_icon(UI_ICON_WIFI, WIFI_ICON_DISCONNECTED);
+            //ui_set_icon(UI_ICON_WIFI, WIFI_ICON_DISCONNECTED);
         }
     }
 
@@ -105,24 +197,25 @@ static void loop_task(void* args) {
     // }
 }
 
-static void accessory_driver_task(void* args) {
-    while (true) {
-        bluetooth_driver_tick();
-        vTaskDelay(1);
-    }
-}
+// static void accessory_driver_task(void* args) {
+//     while (true) {
+//         bluetooth_driver_tick();
+//         vTaskDelay(1);
+//     }
+// }
 
 static void main_task(void* args) {
-    console_ready();
-    ui_open_page(&PAGE_EDGING_STATS, NULL);
-    ui_reset_idle_timer();
-    orgasm_control_set_output_mode(OC_MANUAL_CONTROL);
+    //console_ready();
+    //ui_open_page(&PAGE_EDGING_STATS, NULL);
+    //ui_reset_idle_timer();
+    orgasm_control_set_output_mode(OC_AUTOMATIC);
 
     for (;;) {
         loop_task(NULL);
-        hal_task(NULL);
-        ui_task(NULL);
+        //hal_task(NULL);
+        //ui_task(NULL);
         orgasm_task(NULL);
+        ble_task(NULL);
     }
 }
 
@@ -173,73 +266,83 @@ esp_err_t run_boot_diagnostic(void) {
 }
 
 void app_main() {
+    esp_log_level_set(TAG, ESP_LOG_DEBUG);
     TickType_t boot_tick = xTaskGetTickCount();
 
-    eom_hal_init();
-    ui_init();
-    storage_init();
-    console_init();
-    http_server_init();
-    wifi_manager_init();
-    accessory_driver_init();
-    bluetooth_driver_init();
-    orgasm_control_init();
-    i18n_init();
-    action_manager_init();
+    //eom_hal_init();
 
-    // Red = preboot
-    eom_hal_set_sensor_sensitivity(Config.sensor_sensitivity);
-    eom_hal_set_encoder_brightness(Config.led_brightness);
-    eom_hal_set_encoder_rgb(255, 0, 0);
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+    //eom_hal_setup_pressure_ambient();
+
+    spiffs_init();
+    config_init();
+    //console_init();
+    //accessory_driver_init();
+    orgasm_control_init();
+    eom_hal_init_motor();
+    //i18n_init();
+    //action_manager_init();
+
 
     // Welcome Preamble
-    printf("Maus-Tec presents: Edge-o-Matic 3000\n");
+    printf("Lamystere presents the Endless Orgasm Machine\n");
     printf("Version: %s\n", EOM_VERSION);
-    printf("EOM-HAL Version: %s\n", eom_hal_get_version());
+    //printf("EOM-HAL Version: %s\n", eom_hal_get_version());
 
-    // Post-Update Diagnostics
+    //Post-Update Diagnostics
     esp_err_t dxerr = run_boot_diagnostic();
     if (dxerr != ESP_ERR_INVALID_ARG) {
         if (dxerr == ESP_OK) {
-            ui_toast("%s\n%s", _("Update complete."), EOM_VERSION);
+            //ui_toast("%s\n%s", "Update complete.", EOM_VERSION);
         }
     }
 
     // Go to the splash page:
-    ui_open_page(&SPLASH_PAGE, NULL);
+    //ui_open_page(&SPLASH_PAGE, NULL);
 
     // Green = prepare Networking
     vTaskDelayUntil(&boot_tick, 1000UL / portTICK_PERIOD_MS);
-    eom_hal_set_encoder_rgb(0, 255, 0);
+    //eom_hal_set_encoder_rgb(0, 255, 0);
 
     // Initialize WiFi
     if (Config.wifi_on) {
+        http_server_init();
+        wifi_manager_init();
+
         if (ESP_OK == wifi_manager_connect_to_ap(Config.wifi_ssid, Config.wifi_key)) {
-            ui_set_icon(UI_ICON_WIFI, WIFI_ICON_WEAK_SIGNAL);
+            //ui_set_icon(UI_ICON_WIFI, WIFI_ICON_WEAK_SIGNAL);
         } else {
-            ui_set_icon(UI_ICON_WIFI, WIFI_ICON_DISCONNECTED);
+            //ui_set_icon(UI_ICON_WIFI, WIFI_ICON_DISCONNECTED);
         }
     }
 
     // Blue = prepare Bluetooth and Drivers
     vTaskDelayUntil(&boot_tick, 1000UL / portTICK_PERIOD_MS);
-    eom_hal_set_encoder_rgb(0, 0, 255);
+    //eom_hal_set_encoder_rgb(0, 0, 255);
 
     // Initialize Bluetooth
     if (Config.bt_on) {
-        bluetooth_manager_init();
-        ui_set_icon(UI_ICON_BT, BT_ICON_ACTIVE);
+        ble_host_config_init();
+        //bluetooth_gatt_server_init();
+        //ui_set_icon(UI_ICON_BT, BT_ICON_ACTIVE);
     } else {
-        ui_set_icon(UI_ICON_BT, -1);
+        //ui_set_icon(UI_ICON_BT, -1);
     }
 
     // Initialize Action Manager
-    action_manager_load_all_plugins();
+    //action_manager_load_all_plugins();
 
     // Final delay on encoder colors.
     vTaskDelayUntil(&boot_tick, 1000UL / portTICK_PERIOD_MS);
-    ui_fade_to(0x00);
+    //ui_fade_to(0x00);
 
-    xTaskCreate(accessory_driver_task, "ACCESSORY", 1024 * 4, NULL, tskIDLE_PRIORITY, NULL);
-    xTaskCreate(main_task, "MAIN", 1024 * 8, NULL, tskIDLE_PRIORITY + 1, NULL);
+    ESP_LOGI(TAG, "System initialization complete.");
+    ESP_LOGI(TAG, "IP Address: %s", wifi_manager_get_local_ip());
+    //xTaskCreate(accessory_driver_task, "ACCESSORY", 1024 * 4, NULL, tskIDLE_PRIORITY, NULL);
+    xTaskCreate(main_task, "MAIN", 1024 * 12, NULL, tskIDLE_PRIORITY + 1, NULL);
 }

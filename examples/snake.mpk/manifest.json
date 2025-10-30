@@ -1,7 +1,0 @@
-{
-    "title": "Snake",
-    "namespace": "com.maus-tec.snake",
-    "maintainer": "Maus-Tec <info@maustec.io>",
-    "entrypoint": "main.bas",
-    "icon16": "icon.bmp"
-}

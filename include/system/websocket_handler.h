@@ -2,7 +2,7 @@
 #define __websocket_handler_h
 
 #include "cJSON.h"
-#include "console.h"
+#include "config.h"
 #include "esp_err.h"
 #include "esp_http_server.h"
 

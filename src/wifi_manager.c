@@ -11,7 +11,7 @@
 #include "lwip/sys.h"
 #include "mdns.h"
 #include "nvs_flash.h"
-#include "sntp.h"
+#include "esp_sntp.h"
 #include "system/http_server.h"
 #include <stdbool.h>
 #include <string.h>
@@ -23,6 +23,7 @@ static int s_retry_num = 0;
 static char s_wifi_ip_addr_str[20] = "";
 static bool s_initialized = false;
 static wifi_manager_status_t s_wifi_status = WIFI_MANAGER_DISCONNECTED;
+
 
 #define WIFI_MAX_CONNECTION_RETRY 5
 
@@ -36,7 +37,7 @@ event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* ev
             wifi_config_t config = { 0 };
             esp_wifi_get_config(WIFI_IF_STA, &config);
 
-            if (config.ap.ssid[0] != '\0' && Config.wifi_on) {
+            if (config.ap.ssid[0] != '\0'){ //} && Config.wifi_on) {
                 ESP_LOGI(TAG, "Auto-connect WiFi to: %s", config.ap.ssid);
                 esp_wifi_connect();
             }
@@ -99,9 +100,9 @@ void wifi_manager_init(void) {
     ESP_ERROR_CHECK(esp_wifi_start());
 
     // Use Internet Time
-    sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    sntp_setservername(0, "pool.ntp.org");
-    sntp_init();
+    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    esp_sntp_setservername(0, "pool.ntp.org");
+    esp_sntp_init();
 
     s_initialized = true;
 }
@@ -119,7 +120,7 @@ esp_err_t wifi_manager_connect_to_ap(const char* ssid, const char* key) {
 
     wifi_config_t wifi_config = {
         .sta = {
-            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+            .threshold.authmode = WIFI_AUTH_WPA_PSK,
             .pmf_cfg = {
                 .capable = true,
                 .required = false,
@@ -135,7 +136,7 @@ esp_err_t wifi_manager_connect_to_ap(const char* ssid, const char* key) {
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "Connecting to WiFi: \"%s\"", wifi_config.sta.ssid);
-    ESP_LOGD(TAG, "    Using Password: \"%s\"", wifi_config.sta.password);
+    ESP_LOGI(TAG, "    Using Password: \"%s\"", wifi_config.sta.password);
 
     EventBits_t bits = xEventGroupWaitBits(
         s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY
