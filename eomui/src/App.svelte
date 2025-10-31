@@ -305,8 +305,8 @@
 
   let lines: Record<string, [string, number]> = {
     pressure: ["green", 1],
-    arousal: ["red", 2],
     pleasure: ["orange", 2],
+    arousal: ["red", 2],
     threshold: ["red", 1],
     denied: ["purple", 1],
   };
@@ -583,6 +583,19 @@
     socket.send(msg);
     socket.send(JSON.stringify({ streamReadings: null }));
     chartCanvas?.dispatchEvent(new CustomEvent("ready", {}));
+
+    setInterval(() => {
+      let lastReadingTime = $state.snapshot(readings)[$state.snapshot(readings).length - 1].localTime ?? 0;
+      if (Date.now() - lastReadingTime > 10000) { // 10 seconds threshold
+        console.log("WebSocket data is stale...dropped connection?");
+        isConnected = false;
+        socket.close();
+        socket = new WebSocket(wssUrl);
+        initializeWebSocket(socket);
+        console.log("Reconnecting to ", wssUrl, socket);
+      }
+    }, 2000); // Check for a dropped connection every 2 seconds
+
   }
 
   function handleError(event: Event) {
@@ -666,19 +679,6 @@
         $state.snapshot(readings)[$state.snapshot(readings).length - 1],
       );
     }, 30000); // Log every 30 seconds
-
-    setInterval(() => {
-      let lastReadingTime = $state.snapshot(readings)[$state.snapshot(readings).length - 1].localTime ?? 0;
-      if (Date.now() - lastReadingTime > 5000) { // 5 seconds threshold
-        console.log("WebSocket data is stale...dropped connection?");
-        isConnected = false;
-        socket.close();
-        socket = new WebSocket(wssUrl);
-        initializeWebSocket(socket);
-        console.log("Reconnecting to ", wssUrl, socket);
-      }
-    }, 1000); // Check for a dropped connection every 1 second
-
   });
 
 
@@ -713,7 +713,7 @@
 {/snippet}
 
 <div
-  style="width: 100%; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; box-sizing: border-box; padding-top: 0px;"
+  class="mainContainer"
   onclick={(e) => {
     if (e.target !== dialog) dialog.close();
   }}
@@ -781,7 +781,7 @@
           onclick={() => {
           handleBasicChange("resetDenied", null);
         }}
-      style="border-color: purple; color: purple;" role="none"
+      style="border-color: green; color: green;" role="none"
       >
         Orgasms Denied: {lastNumericValue($state.snapshot(readings), "denied")}
       </div>

@@ -72,3 +72,13 @@ h2 {
   white-space: nowrap;
   border-radius: 4px;
 } 
+
+.mainContainer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-top: 0px;
+}
