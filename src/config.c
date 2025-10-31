@@ -12,6 +12,13 @@ CONFIG_DEFS {
     CFG_STRING(wifi_ssid, "");
     CFG_STRING(wifi_key, "");
     CFG_BOOL(wifi_on, true);
+    
+    // Access Point Settings
+    CFG_BOOL(wifi_ap_mode, true);
+    CFG_STRING(ap_ssid, "EOM");
+    CFG_STRING(ap_password, "");
+    CFG_NUMBER(ap_channel, 1);
+    CFG_NUMBER(ap_max_connections, 4);
 
     // Bluetooth Settings
     CFG_STRING(bt_display_name, "MonsterPub");

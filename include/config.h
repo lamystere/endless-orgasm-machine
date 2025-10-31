@@ -62,7 +62,7 @@ typedef enum vibration_mode vibration_mode_t;
 
 // Increment this if you need to trigger a migration on the system config file.
 // Your migration should be defined in config_migrations.c
-#define SYSTEM_CONFIG_FILE_VERSION 2
+#define SYSTEM_CONFIG_FILE_VERSION 3
 
 struct config {
     // Private Things, do not erase!
@@ -77,6 +77,18 @@ struct config {
     char wifi_key[WIFI_KEY_MAX_LEN + 1];
     // True to enable WiFi / Websocket server.
     bool wifi_on;
+    
+    // Access Point Mode Configuration
+    // True to enable AP mode instead of STA mode
+    bool wifi_ap_mode;
+    // Access Point SSID
+    char ap_ssid[WIFI_SSID_MAX_LEN + 1];
+    // Access Point Password (leave empty for open network)
+    char ap_password[WIFI_KEY_MAX_LEN + 1];
+    // Access Point WiFi channel (1-13)
+    uint8_t ap_channel;
+    // Maximum number of stations that can connect to AP (1-4)
+    uint8_t ap_max_connections;
 
     // AzureFang* device name, you might wanna change this.
     char bt_display_name[64];

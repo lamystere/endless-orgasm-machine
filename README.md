@@ -72,7 +72,6 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 
 
 ### To-do
-- Stand-alone wifi option
 - ui and websockets using same endpoint if possible
 - 2nd motor support from UI
 - pinouts and schematics for suggested hardware
@@ -82,11 +81,12 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 - X axis on chart
 - Put some effort into UI styling
 - LED and encoder options?
-- UI crashing with rapid motor speed adjustments?
-- Less BT logging
+- UI crashing with rapid motor speed adjustments!
 - Running average math seems off
 - Implement patterns?
-- Doesn't handle more than 2 clients well
+- Doesn't handle more than 4 clients.  Need to aggresively drop stale websocket connections
+- Restore ability to connect directly to Lovense vibes, etc..
+- Is rampstop incrementing ok?
 
 ### Notable differences from Edge-o-matic
 - Not tied to specific hardware
@@ -94,11 +94,10 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 - UI is phone-friendly
 - communicates with xtoys via BLE
 - defaults to automatic orgasm denial in ramp-stop mode
-- currently doesn't connect to lovense devices directly
-- screen is optional
 - SD card requirement removed
 - menu system removed
 - console system removed
+- action manager system removed
 - hardwire networked device support removed 
 - edge times are in seconds
 - smaller build size
