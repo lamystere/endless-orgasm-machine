@@ -591,6 +591,7 @@
   }
 
   function handleSettingChange(setting_name: string, value: number) {
+    settings[setting_name as keyof typeof settings].value = value;
     let msg = JSON.stringify({
       configSet: { [setting_name]: value },
     });
@@ -780,7 +781,7 @@
           onclick={() => {
           handleBasicChange("resetDenied", null);
         }}
-      style="border-color: green; color: green;" role="none"
+      style="border-color: purple; color: purple;" role="none"
       >
         Orgasms Denied: {lastNumericValue($state.snapshot(readings), "denied")}
       </div>
@@ -828,7 +829,7 @@
               id="runmode"
               type="radio"
               onchange={() =>{
-                debouncedBasicChange("setMode", runMode);
+                handleBasicChange("setMode", runMode);
                 currentPleasure = $state.snapshot(readings)[$state.snapshot(readings).length - 1].motor;
               }}
               name="runmode"
@@ -849,7 +850,7 @@
               id="vibemode"
               type="radio"
               onchange={() =>
-                handleBasicChange("vibration_mode", Number(modeId))}
+                handleSettingChange("vibration_mode", Number(modeId))}
               name="vibemode"
               value={modeId}
               checked={settings.vibration_mode.value === Number(modeId)}
