@@ -1,9 +1,7 @@
 # Endless Orgasm Machine - An Automated Orgasm Denial Device for ESP32
 
-Using an inflatable butt plug to detect pressure changes indicative of pelvic floor contractions, this
-software, and associated hardware, is used to detect when the user is approaching orgasm and control
-stimulation accordingly. The net result: automated edging and orgasm denial.  It can also be used to allow orgasms then
-determine when the refractory period has subsided enough to begin the next round of pleasuring. 
+Using an inflatable butt plug to detect pressure changes indicative of pelvic floor contractions, this software, and associated hardware, is used to detect when the user is approaching orgasm and control stimulation accordingly. The net result: automated edging and orgasm denial.  It can also be used to allow orgasms then determine when the refractory period has subsided enough to begin the next round of pleasuring. 
+![Screenshot](doc/Screenshot.png)
 
 ## Setup 
 - Install [VSCode](https://code.visualstudio.com/) with the [PlatformIO](https://platformio.org/) extension
@@ -21,7 +19,7 @@ Example: If the IP is the default in acces point mode: ```192.168.4.1``` you sho
 
 ## Wait, isn't this the Edge-o-Matic 3000?
 
-This is a fork of that project with a different set of goals.  The main goal is to make the project accessible to the maker community by keeping the hardware and software simple and DIY friendly - like [the original Nogasm](https://github.com/nogasm/nogasm) that started it all was.  The Edge-o-Matic code is designed around selling well-made but proprietary hardware and is [locked into it through closed-source code](https://github.com/MausTec/eom-hal-dist), crippling attempts to use it with DIY hardware.  It also included a lot of code to connect to related devices and services.
+This is a fork of that project with a different set of goals.  The main goal is to make the project accessible to the maker community by keeping the hardware and software simple and DIY friendly - like [the original Nogasm](https://github.com/nogasm/nogasm) that started it all was.  The Edge-o-Matic code is designed around selling well-made but proprietary hardware and is [locked into it through closed-source code](https://github.com/MausTec/eom-hal-dist), crippling attempts to use it with DIY hardware.  It also included a lot of code to connect to related products and services.
 
 This project is vastly simplified.  You can try it using almost any modern ESP32 device with no additional customization.  You will need to connect a pressure sensor and inflatable buttplug to make it functional, but that's it.  It's meant to be operated wirelessly rather than through the additional hardware of a screen, knob, LEDs, network jack, etc.
 

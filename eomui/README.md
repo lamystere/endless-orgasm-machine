@@ -2,8 +2,10 @@
 
 This is a UI for the Endless Orgasm Machine, a DIY-friendly fork of the Endless Orgasm Machine.  It is extremely lightweight, built using Svelte and Vite only, and meant to be stored in spiffs memory on an ESP32.  The prebuilt output is already included with the larger EOM project.  This source is included to encourage tinkering and enhancements from the maker community.
 
+
 It can be run locally if you prefer.  It should be backwards compatible with the Endless Orgasm Machine though missing some features like denial count.
 
+![Screenshot](../doc/Screenshot.png)
 ## Use
 - determine the IP address of your EOM device after it boots up (you can monitor the serial output to see its IP)
 - Visit the IP using ```https://ip.addy.goes.here``` in a browser to see this UI
