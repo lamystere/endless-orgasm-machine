@@ -32,7 +32,7 @@ static struct {
     uint16_t peak_start;
     uint16_t arousal;
     uint8_t update_flag;
-    uint8_t in_cooldown;
+    unsigned long in_cooldown;
 } arousal_state;
 
 static struct {
@@ -124,7 +124,7 @@ void orgasm_control_init(void) {
     output_state.vibration_mode = Config.vibration_mode;
     output_state.edge_time_out = 10000;
     post_orgasm_state.clench_pressure_threshold = 4096;    
-    arousal_state.in_cooldown = ocTRUE; //start in cooldown to prevent immediate stimulation
+    arousal_state.in_cooldown = 0; 
 
     running_average_init(&arousal_state.average, Config.pressure_smoothing);
     orgasm_state.orgasm_count = 0;  
@@ -222,10 +222,13 @@ static void orgasm_control_updateMotorSpeed() {
     //check if its been long enough since motor stopped
     if ((esp_timer_get_time() / 1000UL) - output_state.motor_stop_time >
         (Config.edge_delay * 1000) + output_state.random_additional_delay) {
-        arousal_state.in_cooldown = ocFALSE;
+        arousal_state.in_cooldown = 0;
+    } else {
+        arousal_state.in_cooldown = (Config.edge_delay * 1000) + output_state.random_additional_delay - 
+                                   ((esp_timer_get_time() / 1000UL) - output_state.motor_stop_time);
     }
 
-    if (arousal_state.in_cooldown) {
+    if (arousal_state.in_cooldown > 0) {
         // It hasn't been long enough since the pleasure stopped
         orgasm_control_twitch_detect();  //if still aroused restart the cooldown timeout counter until arousal totally subsides
 
@@ -237,7 +240,7 @@ static void orgasm_control_updateMotorSpeed() {
         output_state.motor_stop_time = (esp_timer_get_time() / 1000UL);
         output_state.motor_start_time = 0;
         arousal_state.update_flag = ocTRUE;
-        arousal_state.in_cooldown = ocTRUE;
+        arousal_state.in_cooldown = (Config.edge_delay * 1000) + output_state.random_additional_delay;
         eom_hal_set_led(1); // Turn on LED when orgasm detected
         orgasm_state.orgasm_count += 1;
         ESP_LOGI(TAG, "Orgasm Denied! Total: %d", orgasm_state.orgasm_count);
@@ -403,6 +406,7 @@ long orgasm_control_clench_detect(long p_check){
 void orgasm_control_twitch_detect() {
     if (arousal_state.arousal > Config.sensitivity_threshold) {
         output_state.motor_stop_time = (esp_timer_get_time() / 1000UL);
+        arousal_state.in_cooldown = (Config.edge_delay * 1000) + output_state.random_additional_delay;
     }
 }
 
@@ -544,7 +548,7 @@ void orgasm_control_control_motor(orgasm_output_mode_t control) {
 
 void orgasm_control_trigger_arousal() {
     arousal_state.arousal = Config.sensitivity_threshold + 1;
-    arousal_state.in_cooldown = ocTRUE;
+    //arousal_state.in_cooldown = ocTRUE;
     output_state.motor_speed = 0;
     output_state.motor_stop_time = (esp_timer_get_time() / 1000UL);
     output_state.motor_start_time = 0;
@@ -555,7 +559,8 @@ void orgasm_control_set_output_mode(orgasm_output_mode_t mode) {
     orgasm_output_mode_t old = output_state.output_mode;
     output_state.output_mode = mode;
     output_state.control_motor = mode != OC_MANUAL;
-    arousal_state.in_cooldown = ocFALSE; // reset cooldown on mode change
+    output_state.motor_stop_time = 0;
+    //arousal_state.in_cooldown = ocFALSE; // reset cooldown on mode change
 
     if (old == OC_MANUAL) {
         const vibration_mode_controller_t* controller = orgasm_control_getVibrationMode();

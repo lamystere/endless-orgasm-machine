@@ -6,7 +6,7 @@
 #include "esp_adc/adc_oneshot.h"
 #include "driver/dac_oneshot.h"
 #include "driver/gpio.h"
-#include "../../include/config.h"
+#include "config.h"
 #include "esp_log.h"
 
 //#include "driver/adc_oneshot.h"

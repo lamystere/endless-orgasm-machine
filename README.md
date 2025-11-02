@@ -1,6 +1,11 @@
 # Endless Orgasm Machine - An Automated Orgasm Denial Device for ESP32
 
-Using an inflatable butt plug to detect pressure changes indicative of pelvic floor contractions, this software, and associated hardware, is used to detect when the user is approaching orgasm and control stimulation accordingly. The net result: automated edging and orgasm denial.  It can also be used to allow orgasms then determine when the refractory period has subsided enough to begin the next round of pleasuring. 
+Using an inflatable butt plug to detect pressure changes indicative of pelvic floor contractions, this software, and associated hardware, is used to detect when the user is approaching orgasm and control stimulation accordingly. The net result: automated edging and orgasm denial.  
+
+### But I like orgasms...
+
+Having to wait for it makes it more intense!  Trying to resist getting close is a turn-on for some.  When you're ready to end the torture simply set it to manual mode and leave it running.  It can also be used after orgasms to determine when the refractory period has subsided enough to begin the next round of pleasuring. 
+
 ![Screenshot](doc/Screenshot.png)
 
 ## Setup 
@@ -73,26 +78,28 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 ### To-do priority
 - pinouts and schematics for suggested hardware
 - finish integrated screen support / ip display
-- finish bt motor control
-- UI crashing with rapid motor speed adjustments!
 - start access point mode if station wifi fails to connect
 - Is rampstop incrementing ok?
 - Is pressure multiplier working as intended?
+- Is Orgasm mode implemented?
+- Doesn't handle more than 4 clients.  Need to aggresively drop stale websocket connections
 - Is the chart too cpu heavy for slower devices?  how to optimize and keep longer windows?
 - ui and websockets using same endpoint if possible
+- A countdown of seconds until pleasure resumes would be fun
 - Put some effort into UI styling
 - LED and encoder options?
 - Running average math seems off
-- Doesn't handle more than 4 clients.  Need to aggresively drop stale websocket connections
 - Restore ability to connect directly to Lovense vibes, etc..
 - Implement patterns?
 - add X axis on chart (seconds)
 - chart glitch on left side at startup
+- make motor pin selection more intuitive
+- add build walkthrough to docs and more examples
 
 ### Notable differences from Edge-o-matic
 - Not tied to specific hardware!
-- UI hosted on device and phone friendly
-- communicates with xtoys via BLE
+- UI hosted on device and is phone friendly
+- communicates with Xtoys via BLE
 - defaults to automatic orgasm denial in ramp-stop mode
 - smaller build size
 - SD card requirement removed
