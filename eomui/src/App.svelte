@@ -7,7 +7,7 @@
       .toString()
       .replace("/ui","/")
       .replace(/http(s?):\/\//, "wss://") // + "ws"
-      .replace("localhost:5173", "192.168.1.198"), //update to match your EOM's IP address...useful for local testing
+      .replace("localhost:5173", "192.168.4.1"), //update to match your EOM's IP address...useful for local testing
   ) as string;
   if ((window.location.toString().match(/\.\d+\/?$/) ?? []).length > 0) {
     window.location.replace(window.location.toString() + "ws");
@@ -75,11 +75,18 @@
   let runModes: string[] = ["MANUAL", "AUTOMATIC","ORGASM"];
 
   function getNumericValue(r: eomReading, lineType: string): number {
-    if (lineType === "pleasure" || lineType === "motor")
-      return typeof r.motor === "number"
-        ? (r.motor / settings.motor_max_speed.value) * maxY
-        : 0;
+    if (lineType === "pleasure" || lineType === "motor") {
+      let yScaledMotor = typeof r.motor === "number"
+      ? Math.round(r.motor / settings.motor_max_speed.value * maxY)
+      : 0;
+      //console.log(yScaledMotor,r.motor,settings.motor_max_speed.value,maxY);
+      return yScaledMotor;
+    }
+    
     if (lineType === "runMode" || lineType === "cooldown") return 0;
+    if (lineType === "denials") { //using "denials" for the scaled value
+      return typeof r.denied === "number" ? Math.round(r.denied / maxDenied * maxY) : 0;
+    }
     const val = (r as any)[lineType];
     return typeof val === "number" ? val : 0;
   }
@@ -308,11 +315,11 @@
     pleasure: ["orange", 2],
     arousal: ["red", 2],
     threshold: ["red", 1],
-    denied: ["purple", 1],
+    denials: ["#FF7FFF", 1],
   };
 
   let bgt: number = $state(0) as number;
-  let chartTime = $state(10) as number;
+  let chartTime = $state(5) as number;
   let chartCanvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
   // function getXTicks(): number[] {
@@ -323,6 +330,7 @@
   let fudge: number = 2;
   let arousalThicknessMultiplier: number = 4;
   let currentPleasure = $state(0) as number;
+  let maxDenied = $state(20) as number;
 
   let isConnected = $state(false) as boolean;
 
@@ -565,7 +573,8 @@
       //currentPleasure = getNumericValue(wsMsg, "pleasure");
       while (
         readings.length > 0 &&
-        wsMsg.millis - (readings[0].millis ?? 0) > chartTime * 1000
+          ((wsMsg.millis - (readings[0].millis ?? 0) > chartTime * 1000) ||  //the first and last reading are more than chartTime seconds apart
+          (Date.now() - (readings[0].localTime ?? 0) > chartTime * 1000))  //the first reading is older than chartTime seconds
       ) {
         readings.shift();
       }
@@ -621,9 +630,9 @@
   }
 
   let debounceTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-  const DEBOUNCE_DELAY = 150; // 150ms delay
+  const DEBOUNCE_DELAY = 20; //  delay in ms
 
-  // Add debounced setting change function
+  // This needs work
   function debouncedBasicChange(setting_name: string, value: number | string) {
     // Clear existing timeout for this setting
     const existingTimeout = debounceTimeouts.get(setting_name);
@@ -776,14 +785,14 @@
       onresize={chartReady}
     ></canvas>
 
-    <div style="margin-top: .1em; display: flex; justify-content:space-evenly;">
-      <div class="statBoxButton" title="Click to reset denied orgasms count"
+    <div class="statBoxes">
+      <div class="statBoxButton" title="Current pressure level"
           onclick={() => {
-          handleBasicChange("resetDenied", null);
+          //cant think of an action for clicking pressure yet
         }}
       style="border-color: green; color: green;" role="none"
       >
-        Orgasms Denied: {lastNumericValue($state.snapshot(readings), "denied")}
+        Pressure: {Math.round(lastNumericValue($state.snapshot(readings), "pressure") / maxY * 100)} %
       </div>
 
       <div class="statBoxButton" title="Click to halt pleasure immediately!"
@@ -816,6 +825,16 @@
         )} %
       </div>
 
+      <div class="statBoxButton" title="Click to reset denied orgasms count"
+          onclick={() => {
+          handleBasicChange("resetDenied", null);
+        }}
+      style="border-color: #FF7FFF; color: #FF7FFF;" role="none"
+      >
+        Denied: {lastNumericValue($state.snapshot(readings), "denied")}
+      </div>
+
+
     </div>
 
     <div class="radioBoxes">
@@ -823,10 +842,10 @@
         class="radioBox"
       >
         <div style="font-weight: bold; margin-right: 2em;">Control:</div>
-        {#each runModes as runMode}
-          <div>
+        {#each runModes as runMode, index}
+          <div class="radioBoxItem">
             <input
-              id="runmode"
+              id="runmode-{index}"
               type="radio"
               onchange={() =>{
                 handleBasicChange("setMode", runMode);
@@ -836,7 +855,7 @@
               value={runMode}
               checked={$state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode == runMode}
             />
-            <label for="runmode" style={$state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode == runMode ? "font-weight: bold;color: red" : ""}>{runMode.substring(0, 1).toUpperCase() + runMode.substring(1).toLowerCase()}</label>
+            <label for="runmode-{index}" class={$state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode == runMode ? "radioChosen" : "radioChoice"}>{runMode.substring(0, 1).toUpperCase() + runMode.substring(1).toLowerCase()}</label>
           </div>
         {/each}
       </div>
@@ -844,10 +863,10 @@
         class="radioBox"
       >
         <div style="font-weight: bold; margin-right: 0.5em;">Mode:</div>
-        {#each Object.entries(vibration_modes) as [modeId, modeName]}
-          <div>
+        {#each Object.entries(vibration_modes) as [modeId, modeName], index}
+          <div class="radioBoxItem">
             <input
-              id="vibemode"
+              id="vibemode-{modeId}"
               type="radio"
               onchange={() =>
                 handleSettingChange("vibration_mode", Number(modeId))}
@@ -855,11 +874,13 @@
               value={modeId}
               checked={settings.vibration_mode.value === Number(modeId)}
             />
-            <label for="vibemode" style={settings.vibration_mode.value === Number(modeId) ? "font-weight: bold;color: red" : ""}>{modeName}</label>
+            <label for="vibemode-{modeId}" class={settings.vibration_mode.value === Number(modeId) ? "radioChosen" : "radioChoice"} >{modeName}</label>
           </div>
         {/each}
       </div>
     </div>
+
+
 
     {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode === 'MANUAL'}
     <label for="pleasure" style="color:orange">Pleasure: {Math.round(
@@ -877,6 +898,7 @@
       oninput={() => {
           //console.log("Dragging pleasure to ", currentPleasure);
           debouncedBasicChange("setMotor",currentPleasure )
+          //handleBasicChange("setMotor",currentPleasure )
         }
       }
     />
@@ -887,7 +909,7 @@
       {@render InputSlider(settingId)}
     {/each}
 
-    <label for="chartTime">Chart Time: {chartTime} seconds</label>
+    <label for="chartTime">Time Window of Chart: {chartTime} seconds</label>
     <input
       id="chartTime"
       type="range"
@@ -917,6 +939,18 @@
     </button>
     <h2>Settings</h2>
     <hr />
+    <label for="chartTime">Maximum Denied Orgasms on Chart: {maxDenied} denied orgasms</label>
+    <input
+      title="This changes how many denied orgasms it takes to reach 100% on its chart line."
+      id="maxDenied"
+      type="range"
+      min="1"
+      max="100"
+      step="1"
+      bind:value={maxDenied}
+      style="width: 100%;"
+      onchange={handleChartTimeChange}
+    />
 
     {#each modalSettings as settingId}
       {@render InputSlider(settingId)}

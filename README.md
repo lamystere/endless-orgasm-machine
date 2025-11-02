@@ -8,16 +8,16 @@ determine when the refractory period has subsided enough to begin the next round
 ## Setup 
 - Install [VSCode](https://code.visualstudio.com/) with the [PlatformIO](https://platformio.org/) extension
 - Open this repo and let all the PlatformIO dependencies download
-- Configure your wifi ssid and password at the top of [data/config.json](data/config.json)
+- Configure your wifi ssid and password at the top of [data/config.json](data/config.json) or leave it to broadcast its own access point: EOM
 - Under ```PlatformIO -> Project Tasks -> esp32dev -> Platform``` choose ```Build Filesystem Image``` then ```Upload Filesystem Image```
 - Under ```PlatformIO -> Project Tasks -> esp32dev -> General``` choose ```Build``` then eventually ```Upload and Monitor```
-- Watch for your device's IP address to be displayed in the monitor window
+- Watch for your device's IP address to be displayed in the monitor window (In access point mode it is 192.168.4.1)
 
 ## Web UI
 
-[The UI](eomui/README.md) is hosted on the ESP32 itself and can be found by visiting the IP address of your device using https.  You can watch the serial output to determine the IP or use your own means.  If you enable a screen the IP address will be displayed on it.  
+[The UI](eomui/README.md) is hosted on the ESP32 itself and can be found by visiting the IP address of your device using https.  You can watch the serial output to determine the IP or use your own means.   
 
-Example: If the IP is ```192.168.1.2``` you should visit ```https://192.168.1.2/ui``` (you will need to accept the security warning for self-signed certificates).  It will automatically open a websocket connection to that endpoint at ```https://192.168.1.2/```  
+Example: If the IP is the default in acces point mode: ```192.168.4.1``` you should visit ```https://192.168.4.1/ui``` (you will need to accept the security warning for self-signed certificates).  It will automatically open a websocket connection to the websocket endpoint at ```https://192.168.4.1/```  
 
 ## Wait, isn't this the Edge-o-Matic 3000?
 
@@ -54,51 +54,52 @@ If you have the skills you could control other toys through bluetooth with your 
 
 ## Hardware
 
+[Build Examples](doc/building/building.md)
+
 This can be tested on almost any ESP32 device without any extra hardware by touching the pressure sensor pin.  This will simulate a pressure sensor being squeezed.  To actually play with it you will need to attach a pressure sensor and plug.  The [MPX5100DP](https://www.digikey.com/en/products/detail/nxp-usa-inc/MPX5100DP/464060) is the sensor it was designed around but anything capable of 15psi or greater should work whether analog or SPI.  Plug the port of the pressure sensor into the air hose for the butt plug.  
 
-To get it to resemble [the original Nogasm device](https://github.com/nogasm/nogasm) you can then add a [12v power supply](https://www.amazon.com/ACEIRMC-Battery-Plastic-Storage-Connect/dp/B0986RMKBJ) and [charger](https://www.amazon.com/Battery-Charger-Lithium-Display-RC123A/dp/B0CRKSFTK9), a [simple transistor](https://www.amazon.com/ALLECIN-IRF4905-Transistors-IRF4905PBF-Transistor/dp/B0CBKGJT9N) or more protected [motor controller](https://www.amazon.com/High-Power-Adjustment-Electronic-Controller-Brightness/dp/B0DZP1NCVW), a [flyback diode](https://www.amazon.com/15SQ045-Diodes-Schottky-Blocking-Silicon/dp/B0D4F2WVS5), and [vibrator motor](https://www.amazon.com/RPTCOTU-R555-Vibration-Motor-Electrodynamic/dp/B0CSYWK5KQ).  You could share that power supply to the esp32 [through a buck converter](https://www.amazon.com/Regulator-Reducer-Converter-Aircraft-MP1584EN/dp/B0B779ZYN1) to make the whole thing wireless.  That's it.  You can set this all up to comfortably attach to the buttplug rather than having wires and tubes dangling out.  
+To get it to resemble [the original Nogasm device](https://github.com/nogasm/nogasm) you can then add a [12v power supply](https://www.amazon.com/ACEIRMC-Battery-Plastic-Storage-Connect/dp/B0986RMKBJ) and [charger](https://www.amazon.com/Battery-Charger-Lithium-Display-RC123A/dp/B0CRKSFTK9), a [simple transistor](https://www.amazon.com/ALLECIN-IRF4905-Transistors-IRF4905PBF-Transistor/dp/B0CBKGJT9N) or more protected [motor controller](https://www.amazon.com/High-Power-Adjustment-Electronic-Controller-Brightness/dp/B0DZP1NCVW), a [flyback diode](https://www.amazon.com/15SQ045-Diodes-Schottky-Blocking-Silicon/dp/B0D4F2WVS5), and [vibrator motor](https://www.amazon.com/RPTCOTU-R555-Vibration-Motor-Electrodynamic/dp/B0CSYWK5KQ).  You could share that power supply to the esp32 [through a buck converter](https://www.amazon.com/Regulator-Reducer-Converter-Aircraft-MP1584EN/dp/B0B779ZYN1) to make the whole thing wireless.  That's it.  You can set this all up to attach to the buttplug rather than having a wires and tubes leading to a control box, but its a matter of opinion which way is better.  
 
 ### Customization suggestions 
 - You can use xtoys as a hub to ramp up any number of vibrators, strokers, or e-stim units in sync with the EOM
 - You can use an inexpensive [Vibrating inflatable buttplug](https://www.amazon.com/Lovehoney-Black-Inflatable-Vibrating-Back/dp/B092VVXM63) and remove its control box to wire it directly to the EOM and power supply.  A [non-vibrating plug](https://www.amazon.com/Inflatable-Expandable-Stimulator-Beginners-Detachable/dp/B0DSPKVPM1) is even less expensive if you'll be controlling your toys wirelessly.
-- If the pressure sensor is too inconvenient to source you could use a [standard car exhaust pressure sensor](https://www.amazon.com/dp/B0997VKYQ9).  The pin with the notch is Vin, middle is ground, third is Vout.
+- If an MPX5100DP pressure sensor is too inconvenient or expensive to source you could use an easy to find [generic car exhaust pressure sensor](https://www.amazon.com/dp/B0997VKYQ9) since they are almost all analog 15psi 5v sensors.  The pin with the notch is Vin, middle is ground, third is Vout. Everything tested was 3V compatible.
 - If you use an ESP32 board with an integrated screen ([Example 1](https://www.amazon.com/ideaspark-Development-Integrated-Wireless-Micropython), [Example 2](https://www.amazon.com/Waveshare-Development-Frequency-Single-Core-Processor/dp/B0DHTMYTCY)) you can enable the screen in [include/config.h](include/config.h) to see the IP of the device.
-- As an alternative to a vibrating buttplug you can use [a plug made for enema play](https://www.amazon.com/Inflatable-Congestion-Cleaning-Expansion-Beginner/dp/B0CZRLPLQC) and pass a wire through the middle [to a vibrator on top](https://www.amazon.com/dp/B0024XI1LG)
-- Someone posted build that used tubing wrapped around a 3d printed shaft that also housed the electronics.  It was a neat new twist to the inflatable plug since the tubing reacted to pressure just like an inflatable.
+- As an alternative to a vibrating buttplug you can use [a plug made for enema play](https://www.amazon.com/Inflatable-Congestion-Cleaning-Expansion-Beginner/dp/B0CZRLPLQC) and pass a wire through the middle to an e-stim electrode or [to a vibrator on top](https://www.amazon.com/dp/B0024XI1LG).
+- Someone posted a build that used tubing wrapped around a 3d printed shaft that also housed the electronics.  It was a neat new twist to the inflatable plug since the tubing reacted to pressure just like an inflatable.  The link is lost to time but it was on github somewhere.
 - You could put in a higher range pressure sensor if you prefer to inflate the plug to more intense levels.  The measurement is of change in pressure, not overall pressure.
 - You could order a [prebuilt PCB like is used for the Nogasm-esp32](https://github.com/Mathew3000/nogasm-esp32) 
-- There really are a ridiculous number of implementations of the nogasm concept from the last decade...you should do some googling.
+- There really are a ridiculous number of implementations of the nogasm concept from the last decade...you should do some nogasm googling.
 
 
-
-### To-do
-- ui and websockets using same endpoint if possible
-- 2nd motor support from UI
+### To-do priority
 - pinouts and schematics for suggested hardware
-- finish integrated screen support
+- finish integrated screen support / ip display
 - finish bt motor control
-- chart glitch on left side at startup
-- X axis on chart
+- UI crashing with rapid motor speed adjustments!
+- start access point mode if station wifi fails to connect
+- Is rampstop incrementing ok?
+- Is pressure multiplier working as intended?
+- Is the chart too cpu heavy for slower devices?  how to optimize and keep longer windows?
+- ui and websockets using same endpoint if possible
 - Put some effort into UI styling
 - LED and encoder options?
-- UI crashing with rapid motor speed adjustments!
 - Running average math seems off
-- Implement patterns?
 - Doesn't handle more than 4 clients.  Need to aggresively drop stale websocket connections
 - Restore ability to connect directly to Lovense vibes, etc..
-- Is rampstop incrementing ok?
+- Implement patterns?
+- add X axis on chart (seconds)
+- chart glitch on left side at startup
 
 ### Notable differences from Edge-o-matic
-- Not tied to specific hardware
-- UI hosted on device
-- UI is phone-friendly
+- Not tied to specific hardware!
+- UI hosted on device and phone friendly
 - communicates with xtoys via BLE
 - defaults to automatic orgasm denial in ramp-stop mode
+- smaller build size
 - SD card requirement removed
 - menu system removed
 - console system removed
 - action manager system removed
 - hardwire networked device support removed 
 - edge times are in seconds
-- smaller build size
-

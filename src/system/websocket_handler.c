@@ -201,7 +201,7 @@ esp_err_t websocket_handler(httpd_req_t* req) {
     } else if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
         ESP_LOGD(TAG, "Received PONG message");
     } else if (ws_pkt.type == HTTPD_WS_TYPE_TEXT) {
-        ESP_LOGD(TAG, "data: %s", ws_pkt.payload);
+        ESP_LOGI(TAG, "data: %s", ws_pkt.payload);
         httpd_ws_frame_t resp_pkt;
         memset(&resp_pkt, 0, sizeof(httpd_ws_frame_t));
         resp_pkt.type = HTTPD_WS_TYPE_TEXT;

@@ -9,6 +9,9 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
+#define MOTOR1_ENABLED 1
+#define MOTOR2_ENABLED 1
+
 // SD card files:
 #define CONFIG_PATH_MAX 64
 
@@ -81,6 +84,7 @@ struct config {
     // Access Point Mode Configuration
     // True to enable AP mode instead of STA mode
     bool wifi_ap_mode;
+    bool wifi_ap_failover;
     // Access Point SSID
     char ap_ssid[WIFI_SSID_MAX_LEN + 1];
     // Access Point Password (leave empty for open network)

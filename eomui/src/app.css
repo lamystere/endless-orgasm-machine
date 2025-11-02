@@ -45,10 +45,54 @@ h2 {
 .radioBox {
   border: 1px solid gray;
   padding: 0.25em;
-  display: inline-block;
-  text-wrap: nowrap;
   display: flex;
+  align-items: center;
+  text-wrap: nowrap;
   width: auto;
+}
+.radioBoxItem {
+  display: flex;
+  align-items: center;
+  text-wrap: nowrap;
+  input {
+    margin: .25em .25em .25em.75em;
+  }
+}
+
+.radioChosen {
+  font-weight: bold;
+  color: red;
+}
+
+
+.statBoxButton {
+  cursor: pointer;
+  border: 1px solid gray;
+  padding: 0.25em;
+  display: inline-block;
+  white-space: nowrap;
+  border-radius: 4px;
+
+} 
+
+.mainContainer {
+  width: 100%;
+  max-width: 1200px;
+  margin: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-top: 0px;
+  border: 1px solid #333;
+}
+
+.statBoxes {
+  margin-top: .1em;
+  display: flex;
+  justify-content:space-evenly;
+  width: 100%;
 }
 
 @media screen and (max-width: 800px) {
@@ -61,24 +105,9 @@ h2 {
     justify-content: space-around;
     margin-bottom: .3em;
     width: 75%;
+    font-size: 0.5em;
   }
-}
-
-.statBoxButton {
-  cursor: pointer;
-  border: 1px solid gray;
-  padding: 0.25em;
-  display: inline-block;
-  white-space: nowrap;
-  border-radius: 4px;
-} 
-
-.mainContainer {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  box-sizing: border-box;
-  padding-top: 0px;
+  .statBoxButton {
+    font-size: 0.5em;
+  }
 }

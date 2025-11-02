@@ -307,7 +307,7 @@ esp_err_t config_load_from_sd(const char* path, config_t* cfg) {
         goto cleanup;
     }
 
-    ESP_LOGD(TAG, "Loaded %ld bytes from %s\n%s", fsize, path, buffer);
+    ESP_LOGI(TAG, "Loaded %ld bytes from %s\n%s", fsize, path, buffer);
 
     err = config_deserialize(cfg, buffer);
     if (err != ESP_OK) {
