@@ -20,17 +20,17 @@ void api_broadcast_readings(void) {
     cJSON* root = cJSON_AddObjectToObject(payload, "readings");
 
     cJSON_AddNumberToObject(root, "arousal", orgasm_control_get_arousal());
-    cJSON_AddNumberToObject(root, "cooldown", orgasm_control_in_cooldown());
+    cJSON_AddNumberToObject(root, "cooldown", orgasm_control_cooldown());
     cJSON_AddNumberToObject(root, "denied", orgasm_control_get_orgasm_count());
     cJSON_AddNumberToObject(root, "millis", esp_timer_get_time() / 1000);
     cJSON_AddNumberToObject(root, "motor", orgasm_control_get_motor_speed());
     cJSON_AddNumberToObject(root, "pavg", orgasm_control_get_average_pressure());
+    cJSON_AddNumberToObject(root, "permit", orgasm_control_get_permit_orgasm_remaining_seconds());
     cJSON_AddNumberToObject(root, "pressure", orgasm_control_get_last_pressure());
     cJSON_AddStringToObject(root, "runMode", orgasm_control_get_output_mode_str());
     cJSON_AddNumberToObject(root, "sensitivity", orgasm_control_get_arousal_sensitivity());
     cJSON_AddNumberToObject(root, "threshold", orgasm_control_get_arousal_threshold());
-    
-    
+
     // Everything around this is deprecated and should be moved into its own broadcast.
     // cJSON_AddBoolToObject(root, "permitOrgasm", orgasm_control_is_permit_orgasm_reached());
     // cJSON_AddBoolToObject(root, "postOrgasm", orgasm_control_is_post_orgasm_reached());

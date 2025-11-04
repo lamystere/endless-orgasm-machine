@@ -42,9 +42,11 @@ void orgasm_control_set_arousal_threshold(int threshold);
 int orgasm_control_get_arousal_threshold(void);
 int orgasm_control_get_orgasm_count(void);
 int orgasm_control_get_arousal_sensitivity(void);
-oc_bool_t orgasm_control_in_cooldown(void);
+oc_bool_t orgasm_control_cooldown(void);
 void orgasm_control_reset_denied(void);
 void orgasm_control_trigger_arousal(void);
+uint16_t orgasm_control_get_permit_orgasm_remaining_seconds(void);
+void orgasm_control_set_permit_orgasm_remaining_seconds(uint8_t seconds);
 
 // Set Controls
 void orgasm_control_control_motor(orgasm_output_mode_t control);

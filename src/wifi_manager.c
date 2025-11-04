@@ -156,7 +156,10 @@ void wifi_manager_init(void) {
             wifi_manager_start_ap(Config.ap_ssid, Config.ap_password, Config.ap_channel, Config.ap_max_connections);
         } else {
             ESP_LOGI(TAG, "Auto-connecting to AP from config");
-            wifi_manager_connect_to_ap(Config.wifi_ssid, Config.wifi_key);
+            if (wifi_manager_connect_to_ap(Config.wifi_ssid, Config.wifi_key) != ESP_OK) {
+                ESP_LOGW(TAG, "Failed to connect to configured AP. Starting standalone AP.");
+                wifi_manager_start_ap(Config.ap_ssid, Config.ap_password, Config.ap_channel, Config.ap_max_connections);
+            }
         }
     }
 }

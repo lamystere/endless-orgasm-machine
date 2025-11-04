@@ -2,6 +2,7 @@
 
 #include "cJSON.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "util/list.h"
 #include <sys/socket.h>
 
@@ -21,7 +22,7 @@ esp_err_t websocket_send_to_client(websocket_client_t* client, const char* msg) 
 
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = msg;
+    ws_pkt.payload = (uint8_t*)msg;
     ws_pkt.len = strlen(msg);
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
     ws_pkt.final = true;
@@ -72,7 +73,7 @@ static void _json_add_error(cJSON* root, const char* error) {
 }
 
 void websocket_register_command(const websocket_command_t* command) {
-    list_node_t* node = list_add(&_cmd_list, command);
+    list_node_t* node = list_add(&_cmd_list, (void*)command);
     if (node == NULL) {
         ESP_LOGE(TAG, "Command registration failed, NO MEM!");
     } else {
@@ -136,11 +137,14 @@ esp_err_t websocket_open_fd(httpd_handle_t hd, int sockfd) {
         inet_ntop(AF_INET6, &addr.sin6_addr, ipstr, sizeof(ipstr));
     }
 
+    ESP_LOGI(TAG, "Heap memory free before new client: %d bytes", esp_get_free_heap_size());
+
     ESP_LOGI(TAG, "websocket_open_fd(hd: %p, sockfd: %d) => IP: %s", hd, sockfd, ipstr);
     websocket_client_t* client = malloc(sizeof(websocket_client_t));
     client->fd = sockfd;
     client->server = hd;
     client->broadcast_flags = 0;
+    client->last_ping_time = esp_timer_get_time();  // Initialize with current time
     list_add(&_client_list, client);
     httpd_sess_set_ctx(hd, sockfd, client, NULL);
     return ESP_OK;
@@ -197,9 +201,15 @@ esp_err_t websocket_handler(httpd_req_t* req) {
     if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE) {
         ESP_LOGD(TAG, "Client requesting CLOSE");
     } else if (ws_pkt.type == HTTPD_WS_TYPE_PING) {
-        ESP_LOGD(TAG, "Received PING message");
+        ESP_LOGD(TAG, "Received PING message from client");
+        // Update last ping time when we receive a PING from client
     } else if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
-        ESP_LOGD(TAG, "Received PONG message");
+        ESP_LOGD(TAG, "Received PONG message from client");
+        // Update last ping time when we receive a PONG response
+        if (req->sess_ctx != NULL) {
+            websocket_client_t* client = (websocket_client_t*)req->sess_ctx;
+            client->last_ping_time = esp_timer_get_time();
+        }
     } else if (ws_pkt.type == HTTPD_WS_TYPE_TEXT) {
         ESP_LOGI(TAG, "data: %s", ws_pkt.payload);
         httpd_ws_frame_t resp_pkt;
@@ -246,3 +256,94 @@ cleanup:
 esp_err_t websocket_connect_to_bridge(const char* address, int port) {
     return ESP_FAIL;
 }
+
+
+/* WIP
+// Timer handle for periodic ping checks
+static esp_timer_handle_t _ping_timer = NULL;
+
+#define PING_INTERVAL_US (4000000)   // 5 seconds in microseconds - how often to send PINGs
+#define PING_TIMEOUT_US (10000000)   // 10 seconds in microseconds - timeout for responses
+
+// Callback function to send PINGs and check for stale connections
+static void websocket_check_connections(void* arg) {
+    int64_t current_time = esp_timer_get_time();
+    websocket_client_t* client = NULL;
+    list_node_t* node = _client_list._first;
+    
+    while (node != NULL) {
+        client = (websocket_client_t*)node->data;
+        list_node_t* next_node = node->next;  // Save next node in case we remove current
+
+        int64_t elapsed = current_time - client->last_ping_time;
+
+        if (elapsed > PING_TIMEOUT_US) {
+            ESP_LOGW(TAG, "Client fd=%d timed out (no response for %lld ms), closing connection", 
+                     client->fd, elapsed / 1000);
+            
+            // Close the socket - this will trigger websocket_close_fd callback
+            httpd_sess_trigger_close(client->server, client->fd);
+        } else if (_is_websocket(client)) {
+            // Send a PING frame to the client to check if it's still alive
+            httpd_ws_frame_t ping_frame;
+            memset(&ping_frame, 0, sizeof(httpd_ws_frame_t));
+            ping_frame.type = HTTPD_WS_TYPE_PING;
+            ping_frame.payload = NULL;
+            ping_frame.len = 0;
+            ping_frame.final = true;
+            
+            esp_err_t err = httpd_ws_send_frame_async(client->server, client->fd, &ping_frame);
+            if (err != ESP_OK) {
+                ESP_LOGW(TAG, "Failed to send PING to client fd=%d: %s", 
+                         client->fd, esp_err_to_name(err));
+            } else {
+                ESP_LOGD(TAG, "Sent PING to client fd=%d", client->fd);
+            }
+        }
+        
+        node = next_node;
+    }
+}
+
+void websocket_start_ping_timer(void) {
+    if (_ping_timer != NULL) {
+        ESP_LOGW(TAG, "Ping timer already started");
+        return;
+    }
+    
+    const esp_timer_create_args_t timer_args = {
+        .callback = &websocket_check_connections,
+        .arg = NULL,
+        .name = "ws_ping_check"
+    };
+    
+    esp_err_t err = esp_timer_create(&timer_args, &_ping_timer);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create ping timer: %s", esp_err_to_name(err));
+        return;
+    }
+    
+    // Start periodic timer - send PINGs every 5 seconds and check for 10 second timeout
+    err = esp_timer_start_periodic(_ping_timer, PING_INTERVAL_US);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start ping timer: %s", esp_err_to_name(err));
+        esp_timer_delete(_ping_timer);
+        _ping_timer = NULL;
+        return;
+    }
+    
+    ESP_LOGI(TAG, "WebSocket ping timer started (5 second interval, 10 second timeout)");
+}
+
+void websocket_stop_ping_timer(void) {
+    if (_ping_timer == NULL) {
+        return;
+    }
+    
+    esp_timer_stop(_ping_timer);
+    esp_timer_delete(_ping_timer);
+    _ping_timer = NULL;
+    ESP_LOGI(TAG, "WebSocket ping timer stopped");
+}
+*/
+

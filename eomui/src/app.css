@@ -56,6 +56,10 @@ h2 {
   text-wrap: nowrap;
   input {
     margin: .25em .25em .25em.75em;
+    cursor: pointer;
+  }
+  label {
+    cursor: pointer;
   }
 }
 
@@ -93,6 +97,11 @@ h2 {
   display: flex;
   justify-content:space-evenly;
   width: 100%;
+}
+
+#auto_edging_duration_minutes {
+  accent-color: red; 
+  background: linear-gradient(to right, red 0%, red 100%);
 }
 
 @media screen and (max-width: 800px) {

@@ -4,23 +4,26 @@ Using an inflatable butt plug to detect pressure changes indicative of pelvic fl
 
 ### But I like orgasms...
 
-Having to wait for it makes it more intense!  Trying to resist getting close is a turn-on for some.  When you're ready to end the torture simply set it to manual mode and leave it running.  It can also be used after orgasms to determine when the refractory period has subsided enough to begin the next round of pleasuring. 
+Having to wait for it while being right at the edge makes it more intense!  Trying to resist getting close is a turn-on for some.  When you're ready to end the edging you can use "Control: Orgasm" to allow you to finish after a chosen number of minutes... or simply set it to "Control: Manual" and leave it running.  It can also be used after orgasms to determine exactly when the refractory period has subsided enough to begin the next round of pleasuring. 
 
 ![Screenshot](doc/Screenshot.png)
 
 ## Setup 
 - Install [VSCode](https://code.visualstudio.com/) with the [PlatformIO](https://platformio.org/) extension
 - Open this repo and let all the PlatformIO dependencies download
-- Configure your wifi ssid and password at the top of [data/config.json](data/config.json) or leave it to broadcast its own access point: EOM
+- Configure your wifi ssid and password at the top of [data/config.json](data/config.json) or skip this step to let it broadcast its own access point: ```EOM```.  You can have it both ways: Set it up to connect to your home wifi but if you're away EOM will go into access point mode after it fails to find it.
 - Under ```PlatformIO -> Project Tasks -> esp32dev -> Platform``` choose ```Build Filesystem Image``` then ```Upload Filesystem Image```
 - Under ```PlatformIO -> Project Tasks -> esp32dev -> General``` choose ```Build``` then eventually ```Upload and Monitor```
-- Watch for your device's IP address to be displayed in the monitor window (In access point mode it is 192.168.4.1)
+- Watch for your device's IP address to be displayed in the monitor window 
+(In access point mode it is 192.168.4.1)
 
 ## Web UI
 
 [The UI](eomui/README.md) is hosted on the ESP32 itself and can be found by visiting the IP address of your device using https.  You can watch the serial output to determine the IP or use your own means.   
 
-Example: If the IP is the default in acces point mode: ```192.168.4.1``` you should visit ```https://192.168.4.1/ui``` (you will need to accept the security warning for self-signed certificates).  It will automatically open a websocket connection to the websocket endpoint at ```https://192.168.4.1/```  
+Example: If the IP is the default in acces point mode: ```192.168.4.1``` you should visit ```http://192.168.4.1/ui``` (you will need to accept the security warning for self-signed certificates).  It will automatically open a websocket connection to the websocket endpoint at ```http://192.168.4.1/```  
+
+
 
 ## Wait, isn't this the Edge-o-Matic 3000?
 
@@ -65,6 +68,7 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 
 ### Customization suggestions 
 - You can use xtoys as a hub to ramp up any number of vibrators, strokers, or e-stim units in sync with the EOM
+- If you want to connect Xtoys via wifi you will need to enable SSL in the main project ```data/config.json```.  The bluetooth connection is more useful since it sends pleasure level rather than arousal but there are some existing xtoys scripts that work with the edge-o-matic arousal level.
 - You can use an inexpensive [Vibrating inflatable buttplug](https://www.amazon.com/Lovehoney-Black-Inflatable-Vibrating-Back/dp/B092VVXM63) and remove its control box to wire it directly to the EOM and power supply.  A [non-vibrating plug](https://www.amazon.com/Inflatable-Expandable-Stimulator-Beginners-Detachable/dp/B0DSPKVPM1) is even less expensive if you'll be controlling your toys wirelessly.
 - If an MPX5100DP pressure sensor is too inconvenient or expensive to source you could use an easy to find [generic car exhaust pressure sensor](https://www.amazon.com/dp/B0997VKYQ9) since they are almost all analog 15psi 5v sensors.  The pin with the notch is Vin, middle is ground, third is Vout. Everything tested was 3V compatible.
 - If you use an ESP32 board with an integrated screen ([Example 1](https://www.amazon.com/ideaspark-Development-Integrated-Wireless-Micropython), [Example 2](https://www.amazon.com/Waveshare-Development-Frequency-Single-Core-Processor/dp/B0DHTMYTCY)) you can enable the screen in [include/config.h](include/config.h) to see the IP of the device.
@@ -77,6 +81,7 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 
 ### To-do priority
 - pinouts and schematics for suggested hardware
+- do canvas drawing to offscreen element for efficiency
 - finish integrated screen support / ip display
 - start access point mode if station wifi fails to connect
 - Is rampstop incrementing ok?

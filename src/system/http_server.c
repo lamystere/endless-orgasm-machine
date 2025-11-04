@@ -12,16 +12,25 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <stdio.h>
-
-#define DEFAULT_CACERT_PATH "/spiffs/cert.pem"
-#define DEFAULT_PRVTKEY_PATH "/spiffs/key.pem"
-#define SCRATCH_BUFSIZE  8192
+ 
+#define DEFAULT_CACERT_PATH "/spiffs/server.crt"
+#define DEFAULT_PRVTKEY_PATH "/spiffs/server.key"
+#define SCRATCH_BUFSIZE  16384
 
 static const char* TAG = "http_server";
 static httpd_handle_t _server = NULL;
 static char* index_html = NULL;
 char scratch[SCRATCH_BUFSIZE];
 struct stat file_stat;
+// extern char *servercert;
+// extern char *prvtkey_pem;
+
+// static int read_ssl_file(const char *custom_path, const char *default_path, char **out_buf) {
+//     char path[CONFIG_PATH_MAX];
+//     sniprintf(path, CONFIG_PATH_MAX, "%s", custom_path ? custom_path : default_path);
+//     int len = fs_read_file(path, out_buf);
+//     return len;
+// }
 
 esp_err_t http_handler(httpd_req_t* req) {
     const char* filepath = "/spiffs/index.html";
@@ -122,6 +131,8 @@ static httpd_handle_t start_webserver(void) {
         config.server_port = Config.websocket_port;
     }
 
+    config.lru_purge_enable = true;
+
     // Open/Close callbacks
     config.open_fn = websocket_open_fd;
     config.close_fn = websocket_close_fd;
@@ -160,6 +171,7 @@ static httpd_handle_t start_webserver(void) {
         );
 
         ssl_config.servercert_len = fs_read_file(path, (char**)&ssl_config.servercert);
+        //servercert = ssl_config.servercert;
 
         if (ssl_config.servercert_len <= 0) {
             ESP_LOGE(TAG, "Error reading CA Certificate.");
@@ -176,10 +188,10 @@ static httpd_handle_t start_webserver(void) {
         );
 
         ssl_config.prvtkey_len = fs_read_file(path, (char**)&ssl_config.prvtkey_pem);
+        //prvtkey_pem = ssl_config.prvtkey_pem;
 
         if (ssl_config.prvtkey_len <= 0) {
             ESP_LOGE(TAG, "Error reading SSL Private Key.");
-            free(ssl_config.servercert);
             return NULL;
         } else {
             ESP_LOGI(TAG, "%d%s", ssl_config.prvtkey_len, ssl_config.prvtkey_pem);
@@ -188,9 +200,6 @@ static httpd_handle_t start_webserver(void) {
         ESP_LOGI(TAG, "SSL Certificates provisioned. (%d bytes free)", esp_get_free_heap_size());
         err = httpd_ssl_start(&server, &ssl_config);
         
-
-        free(ssl_config.servercert);
-        free(ssl_config.prvtkey_pem);
 
         ESP_LOGI(TAG, "SSL Server started.");
 
@@ -204,11 +213,15 @@ static httpd_handle_t start_webserver(void) {
 
     ESP_LOGI(TAG, "Server started, registering routes.");
     init_routes(server);
+    
+    // Start the WebSocket ping timer
+    //websocket_start_ping_timer();
 
     return server;
 }
 
 static void stop_webserver(httpd_handle_t server) {
+    //websocket_stop_ping_timer();
     httpd_stop(server);
 }
 
@@ -232,10 +245,8 @@ disconnect_handler(void* arg, esp_event_base_t event_base, int32_t event_id, voi
 }
 
 esp_err_t http_server_init(void) {
-    esp_event_handler_register(    IP_EVENT, IP_EVENT_STA_GOT_IP, &connect_handler, &_server);
-    esp_event_handler_register(
-        WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &disconnect_handler, &_server
-    );
+    esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &connect_handler, &_server);
+    esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &disconnect_handler, &_server);
 
     api_register_all();
     return ESP_OK;

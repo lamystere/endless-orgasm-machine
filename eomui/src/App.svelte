@@ -2,12 +2,13 @@
   import { onMount } from "svelte";
   import type { Action } from "svelte/action";
 
+  let isSSL = window.location.protocol === "https:";
   let wssUrl = $state(
     window.location
       .toString()
       .replace("/ui","/")
-      .replace(/http(s?):\/\//, "wss://") // + "ws"
-      .replace("localhost:5173", "192.168.4.1"), //update to match your EOM's IP address...useful for local testing
+      .replace(/http(s?):\/\//, isSSL ? "wss://" : "ws://")
+      .replace("localhost:5173", "192.168.4.1"), //If not in AP mode update to match your EOM's IP address...useful for local testing
   ) as string;
   if ((window.location.toString().match(/\.\d+\/?$/) ?? []).length > 0) {
     window.location.replace(window.location.toString() + "ws");
@@ -15,7 +16,7 @@
 
   type eomReading = {
     arousal: number;
-    cooldown?: number; //boolean 1 or 0
+    cooldown?: number; //ms left of denial period
     denied?: number;
     localTime?: number;
     millis: number;
@@ -66,11 +67,6 @@
     3: "Enhancement",
     //4: "Pattern",
   };
-  // let operation_modes: Record<number, string> = {  //also known as runMode
-  //   1: "manual",
-  //   2: "automatic",
-  //   //3: "orgasm",
-  // };
 
   let runModes: string[] = ["MANUAL", "AUTOMATIC","ORGASM"];
 
@@ -83,7 +79,7 @@
       return yScaledMotor;
     }
     
-    if (lineType === "runMode" || lineType === "cooldown") return 0;
+    if (lineType === "runMode") return 0;
     if (lineType === "denials") { //using "denials" for the scaled value
       return typeof r.denied === "number" ? Math.round(r.denied / maxDenied * maxY) : 0;
     }
@@ -149,7 +145,7 @@
       description: "Minimum time to wait after edge detection before resuming stimulation.",
     },
     max_additional_delay: {
-      value: 10,
+      value: 5,
       min: 0,
       max: 60,
       label: "Max Additional Delay",
@@ -230,9 +226,9 @@
     },
     auto_edging_duration_minutes: {
       value: 15,
-      min: 0,
-      max: 60,
-      label: "Auto Edging Duration",
+      min: 1,
+      max: 120,
+      label: "Auto-Edging Duration",
       type: "minutes",
       description: "How long to edge before permiting an orgasm.",
     },
@@ -264,14 +260,14 @@
 
   let mainSettings: string[] = [
     "sensitivity_threshold",
-    "sensor_sensitivity",
-    "motor_max_speed",
     "motor_ramp_time_s",
-  ];
-
-  let modalSettings: string[] = [
-    "motor_start_speed",
     "edge_delay",
+  ];
+  
+  let modalSettings: string[] = [
+    "motor_max_speed",
+    "motor_start_speed",
+    "sensor_sensitivity",
     "max_additional_delay",
     "minimum_on_time",
     "pressure_smoothing",
@@ -282,7 +278,6 @@
     "clench_time_threshold_ms",
     "clench_detector_in_edging",
     "max_clench_duration_ms",
-    "auto_edging_duration_minutes",
     "post_orgasm_duration_seconds",
     "use_post_orgasm",
     "use_average_values",
@@ -322,6 +317,7 @@
   let chartTime = $state(5) as number;
   let chartCanvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
+  let frameFlashDelay: number = 5; //frames between background color toggles when aroused/on cooldown
   // function getXTicks(): number[] {
   //   return Array.from({ length: chartTime + 1 }, (_, i) => chartTime - i);
   // }
@@ -402,7 +398,7 @@
       );
       i += keySpacing;
     }
-
+    ctx.fillStyle = "black";
     updateChart();
   }
 
@@ -450,11 +446,11 @@
       isAroused(_readings[_readings.length - 1]) ||
       isOnCooldown(_readings[_readings.length - 1])
     ) {
-      if (bgt <= 0) {
+      if (bgt >= frameFlashDelay) {  
         ctx.fillStyle = ctx.fillStyle == "#111111" ? "#330000" : "#111111";
-        bgt = 5;
+        bgt = 0;
       } else {
-        bgt -= 1;
+        bgt += 1;
       }
     } else {
       ctx.fillStyle = "#111111";
@@ -483,7 +479,24 @@
         yPos,
       );
       ctx.stroke();
+      ctx.setLineDash([]);
     }
+
+    //countdown
+    ctx.font = "bold 3em sans-serif";
+    // ctx.fillStyle = "grey";
+    if (isOnCooldown(_readings[_readings.length - 1])) {
+      const remaining = Math.round(lastNumericValue(_readings,"cooldown") / 1000);
+      //console.log("On Cooldown:", lastNumericValue(_readings,"cooldown"), remaining,_readings[_readings.length - 1]);
+      ctx.strokeText(isAroused(_readings[_readings.length - 1]) ? `DENIED ORGASM - IN TIME OUT` : `DENIED FOR ${remaining} MORE SECONDS`, chartCanvas.width/4, chartCanvas.height/2);
+    } else if ((_readings[_readings.length - 1].runMode ?? "") === "ORGASM") {
+      let timeStr: string = Math.ceil(lastNumericValue(_readings,"permit")) > 60 ? 
+        Math.ceil(lastNumericValue(_readings,"permit")/60).toString() + " MINUTES" : 
+        lastNumericValue(_readings,"permit").toString() + " SECOND" + (lastNumericValue(_readings,"permit") > 1 ? "S" : "");
+      ctx.strokeText(`ORGASM PERMITTED IN ${timeStr}`, chartCanvas.width/4, chartCanvas.height/2);
+    }
+
+
 
     //data lines
     for (const [lineType, [color, width]] of Object.entries(lines)) {
@@ -520,13 +533,16 @@
   function handleConfigList(configList: Object) {
     console.log("Received configuration data:", configList);
     for (const [key, value] of Object.entries(configList)) {
-      if (key === "sensitivity_threshold") {
-        settings.sensitivity_threshold.value = Number(value);
-      } else if (key === "motor_ramp_time_s") {
-        settings.motor_ramp_time_s.value = Number(value);
-      } else if (key === "motor_max_speed") {
-        settings.motor_max_speed.value = Number(value);
+      if (key in settings) {
+        settings[key as keyof typeof settings].value = Number(value);
       }
+      // if (key === "sensitivity_threshold") {
+      //   settings.sensitivity_threshold.value = Number(value);
+      // } else if (key === "motor_ramp_time_s") {
+      //   settings.motor_ramp_time_s.value = Number(value);
+      // } else if (key === "motor_max_speed") {
+      //   settings.motor_max_speed.value = Number(value);
+      // }
     }
   }
 
@@ -603,7 +619,9 @@
         initializeWebSocket(socket);
         console.log("Reconnecting to ", wssUrl, socket);
       }
-    }, 2000); // Check for a dropped connection every 2 seconds
+      // Note: The browser automatically responds to server PING frames with PONG frames
+      // No need to manually send keepalive messages from the client
+    }, 5000); // Check for stale data every 5 seconds
 
   }
 
@@ -690,7 +708,14 @@
     }, 30000); // Log every 30 seconds
   });
 
-
+  function handleConnect() {
+    wssUrl = wssUrl.trim();
+    socket?.close();
+    isConnected = false;
+    socket = new WebSocket(wssUrl);
+    initializeWebSocket(socket);
+    console.log("Connecting to ", wssUrl, socket);
+  }
 </script>
 
 {#snippet InputSlider(id: string)}
@@ -739,16 +764,12 @@
           type="text"
           bind:value={wssUrl}
           style="margin-bottom: .5%;"
+          onkeyup={(event) => {if (event.key === 'Enter') { handleConnect(); }}}
         /><input
           type="button"
           value="Connect"
           onclick={() => {
-            wssUrl = wssUrl.trim();
-            socket?.close();
-            isConnected = false;
-            socket = new WebSocket(wssUrl);
-            initializeWebSocket(socket);
-            console.log("Connecting to ", wssUrl, socket);
+            handleConnect();
           }}
         />
         {#if isConnected}
@@ -790,7 +811,7 @@
           onclick={() => {
           //cant think of an action for clicking pressure yet
         }}
-      style="border-color: green; color: green;" role="none"
+      style="border-color: green; color: green; cursor:auto" role="none"
       >
         Pressure: {Math.round(lastNumericValue($state.snapshot(readings), "pressure") / maxY * 100)} %
       </div>
@@ -902,7 +923,10 @@
         }
       }
     />
-      
+    {/if}
+
+    {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode === 'ORGASM'}
+      {@render InputSlider("auto_edging_duration_minutes")}
     {/if}
 
     {#each mainSettings as settingId}
