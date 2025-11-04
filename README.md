@@ -19,44 +19,27 @@ Having to wait for it while being right at the edge makes it more intense!  Tryi
 
 ## Web UI
 
-[The UI](eomui/README.md) is hosted on the ESP32 itself and can be found by visiting the IP address of your device using https.  You can watch the serial output to determine the IP or use your own means.   
+[The UI](eomui/README.md) is hosted on the ESP32 itself and can be found by visiting the ```/ui``` endpoint at the IP address of your device.  You can watch the serial output to determine the IP.
 
-Example: If the IP is the default in acces point mode: ```192.168.4.1``` you should visit ```http://192.168.4.1/ui``` (you will need to accept the security warning for self-signed certificates).  It will automatically open a websocket connection to the websocket endpoint at ```http://192.168.4.1/```  
+Example: If you join the EOM WiFi access point the IP will be: ```192.168.4.1``` you should visit ```http://192.168.4.1/ui```  It will automatically open a connection to the websocket endpoint at ```http://192.168.4.1/```.
 
 
+![Screenshot](doc/Screenshot2.png)
 
-## Wait, isn't this the Edge-o-Matic 3000?
-
-This is a fork of that project with a different set of goals.  The main goal is to make the project accessible to the maker community by keeping the hardware and software simple and DIY friendly - like [the original Nogasm](https://github.com/nogasm/nogasm) that started it all was.  The Edge-o-Matic code is designed around selling well-made but proprietary hardware and is [locked into it through closed-source code](https://github.com/MausTec/eom-hal-dist), crippling attempts to use it with DIY hardware.  It also included a lot of code to connect to related products and services.
-
-This project is vastly simplified.  You can try it using almost any modern ESP32 device with no additional customization.  You will need to connect a pressure sensor and inflatable buttplug to make it functional, but that's it.  It's meant to be operated wirelessly rather than through the additional hardware of a screen, knob, LEDs, network jack, etc.
-
-## WebSocket API
-
-Documentation for the WebSocket API can be found in [doc/WebSocket.md](doc/WebSocket.md).
-
-## BLE Usage
+## bluetooth usage
 Using Xtoys you can connect to the EOM and let it control your other Xtoys devices.  It emulates a [MonsterPub Mr. Devil Kegel (since renamed)](https://monsterpub.com/products/mp2-u-shaped-remote-egg-with-kegel).  The "pressure" reading corresponds to the "pleasure" output of the EOM.  Vibrator strength can be controlled in manual mode.  
 
-Why Mr Devil?  Because it's one of the few BT devices in Xtoys that has 2 way communication and high resolution (16 bit).  If you wish to connect Xtoys to the EOM over wifi you can choose the Edge-o-matic 3000 and it is backwards compatible.  This is less useful because Xtoys only chose to implement "arousal" and "pressure" inputs, so all the logic that goes into calculating the amount of pleasure is ignored.  
+Why Mr Devil?  Because it's one of the few bluetooth devices in Xtoys that has 2 way communication and high resolution (16 bit).  If you wish to connect Xtoys to the EOM over wifi you can choose the Edge-o-matic 3000 and it is backwards compatible.  This is less useful because Xtoys only chose to implement "arousal" and "pressure" inputs, so all the logic that goes into calculating the amount of pleasure is ignored.  
 
 If you have the skills you could control other toys through bluetooth with your own controller rather than using Xtoys, but its popular and free.
 
-### Vibration Modes:
+### Pleasure Modes:
 
 |ID|Name|Description|
 |---|---|---|
-|1|Ramp-Stop|Vibrator ramps up from set min speed to max speed, stopping abruptly on arousal threshold crossing.|
-|2|Depletion (default)|Vibrator speed ramps up from min to max, but is reduced as arousal approaches threshold.|
-|3|Enhancement|Vibrator speed ramps up as arousal increases, holding a peak for ramp_time.|
-|0|Global Sync|When set on secondary vibrators, they will follow the primary vibrator speed.|
-
-### post_orgasm_duration_seconds:
-|Seconds|Description|
-|---|---|
-|0|Turn off stimulation at orgasm dectection - Failed Orgasm|
-|5-15|Turn off stimulation after amount of seconds - Normal orgasm|
-|16-4095|Turn off stimulation after amount of seconds - Post orgasm Torture|
+|1|Ramp-Stop|Pleasure ramps up, stopping abruptly on arousal threshold crossing.|
+|2|Depletion (default)|Pleasure ramps up, but is reduced for even small arousal spikes.  This makes for a constant interaction with your arousal rather than just a sudden cutoff when it's over the limit|
+|3|Enhancement|This is the opposite of edging, it will make you orgasm faster.  Pleasure ramps up as arousal increases, holding a peak for ramp_time.|
 
 ## Hardware
 
@@ -68,11 +51,23 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 
 Tested boards: ESP32DEV, ESP32-WROOM32, ESP32-C6 (no motor out), ESP32-S3 
 
+## WebSocket API
+
+Documentation for the WebSocket API can be found in [doc/WebSocket.md](doc/WebSocket.md).
+
+
+## Wait, isn't this the Edge-o-Matic 3000?
+
+This is a fork of that project with a different set of goals.  The main goal is to make the project accessible to the maker community by keeping the hardware and software simple and DIY friendly - like [the original Nogasm](https://github.com/nogasm/nogasm) that started it all was.  The Edge-o-Matic code is designed around selling well-made but proprietary hardware and is [locked into it through closed-source code](https://github.com/MausTec/eom-hal-dist), crippling attempts to use it with DIY hardware.  It also included a lot of code to connect to related products and services.
+
+This project was first vastly simplified then expanded with compatibility in mind.  You can try it using almost any modern ESP32 device with no additional customization.  You will need to connect a pressure sensor and inflatable buttplug to make it functional, but that's it.  It's meant to be operated wirelessly rather than through the additional hardware of a screen, knob, LEDs, network jack, etc.
+
+
 ### Customization suggestions 
-- You can use xtoys as a hub to ramp up any number of vibrators, strokers, or e-stim units in sync with the EOM
-- If you want to connect Xtoys via wifi you will need to enable SSL in the main project ```data/config.json```.  The bluetooth connection is more useful since it sends pleasure level rather than arousal but there are some existing xtoys scripts that work with the edge-o-matic arousal level.
-- You can use an inexpensive [Vibrating inflatable buttplug](https://www.amazon.com/Lovehoney-Black-Inflatable-Vibrating-Back/dp/B092VVXM63) and remove its control box to wire it directly to the EOM and power supply.  A [non-vibrating plug](https://www.amazon.com/Inflatable-Expandable-Stimulator-Beginners-Detachable/dp/B0DSPKVPM1) is even less expensive if you'll be controlling your toys wirelessly.
-- If an MPX5100DP pressure sensor is too inconvenient or expensive to source you could use an easy to find [generic car exhaust pressure sensor](https://www.amazon.com/dp/B0997VKYQ9) since they are almost all analog 15psi 5v sensors.  The pin with the notch is Vin, middle is ground, third is Vout. Everything tested was 3V compatible.
+- You can use [Xtoys.app](https://xtoys.app) as a control panel to ramp up any number of vibrators, strokers, or e-stim units in sync with the EOM over bluetooth.  See [this Xtoys layout for an example](https://xtoys.app/layouts/-OcwSDDWBei-Bg4xwe5o)
+- If you want to connect Xtoys via wifi you will need to enable SSL in ```data/config.json``` and use the edge-o-matic Xtoys device.  The bluetooth connection is more useful since it sends pleasure level rather than arousal but there are some existing xtoys scripts that work with the edge-o-matic arousal level.
+- You can use an inexpensive [Vibrating inflatable buttplug](https://www.amazon.com/Lovehoney-Black-Inflatable-Vibrating-Back/dp/B092VVXM63) and remove its control box to wire it directly to the EOM with a power circuit.  A [non-vibrating plug](https://www.amazon.com/Inflatable-Expandable-Stimulator-Beginners-Detachable/dp/B0DSPKVPM1) is even less expensive if you'll be controlling your pleasure wirelessly.
+- If an [MPXV5100GP](https://octopart.com/search?q=MPXV5100GP&currency=USD) pressure sensor is too inconvenient or expensive to source you could use an easy to find [generic car exhaust pressure sensor](https://www.amazon.com/dp/B0997VKYQ9) since they are almost all analog 15psi 5v sensors.  The pin with the notch is Vin, middle is ground, third is Vout. Everything tested was 3V compatible.
 - If you use an ESP32 board with an integrated screen ([Example 1](https://www.amazon.com/ideaspark-Development-Integrated-Wireless-Micropython), [Example 2](https://www.amazon.com/Waveshare-Development-Frequency-Single-Core-Processor/dp/B0DHTMYTCY)) you can enable the screen in [include/config.h](include/config.h) to see the IP of the device.
 - As an alternative to a vibrating buttplug you can use [a plug made for enema play](https://www.amazon.com/Inflatable-Congestion-Cleaning-Expansion-Beginner/dp/B0CZRLPLQC) and pass a wire through the middle to an e-stim electrode or [to a vibrator on top](https://www.amazon.com/dp/B0024XI1LG).
 - Someone posted a build that used tubing wrapped around a 3d printed shaft that also housed the electronics.  It was a neat new twist to the inflatable plug since the tubing reacted to pressure just like an inflatable.  The link is lost to time but it was on github somewhere.
