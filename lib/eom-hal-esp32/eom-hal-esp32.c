@@ -81,12 +81,11 @@ void eom_hal_set_sensor_sensitivity(uint8_t sensitivity) {
 
 //=== Vibration
 void eom_hal_set_motor_speed(uint8_t speed) {
-    //uint8_t scaledSpeed = (uint8_t)((speed / 127.0f) * 255);  
 #if SOC_DAC_SUPPORTED
     dac_oneshot_output_voltage(dac1_handle, speed);
     dac_oneshot_output_voltage(dac2_handle, speed);
 #else
-    // No DAC support, implement alternative motor control here
+    // No DAC support on C6, implement pwm motor control here...eventually
 #endif
 }
 
