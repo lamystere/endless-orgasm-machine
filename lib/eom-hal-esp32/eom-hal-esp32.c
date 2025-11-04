@@ -4,12 +4,12 @@
 #include "eom-hal-esp32.h"
 #include "hal/adc_types.h"
 #include "esp_adc/adc_oneshot.h"
+//#include "driver/adc_oneshot.h"
 #include "driver/dac_oneshot.h"
 #include "driver/gpio.h"
 #include "config.h"
 #include "esp_log.h"
 
-//#include "driver/adc_oneshot.h"
 static const char* TAG = "HAL";
 
 uint8_t pressure_ambient = DEFAULT_AMBIENT_RESSURE;
@@ -20,15 +20,18 @@ adc_oneshot_unit_init_cfg_t adc1_cfg = {
     .unit_id = ADC_UNIT_1,
     .ulp_mode = ADC_ULP_MODE_DISABLE,
 };
-dac_oneshot_handle_t dac1_handle;
-dac_oneshot_handle_t dac2_handle;
-dac_oneshot_config_t dac1_cfg = {
-    .chan_id = DAC_CHAN_0,  //motor 1
-};
-dac_oneshot_config_t dac2_cfg = {
-    .chan_id = DAC_CHAN_1,  //motor 2
-};
-
+#define MOTOR1_PIN DAC_CHANNEL_0
+#define MOTOR2_PIN DAC_CHANNEL_1
+#if SOC_DAC_SUPPORTED
+    dac_oneshot_handle_t dac1_handle;
+    dac_oneshot_handle_t dac2_handle;
+    dac_oneshot_config_t dac1_cfg = {
+        .chan_id = DAC_CHAN_0,  //motor 1
+    };
+    dac_oneshot_config_t dac2_cfg = {
+        .chan_id = DAC_CHAN_1,  //motor 2
+    };
+#endif
 
 //=== Pressure
 uint16_t eom_hal_get_pressure_reading(void) {
@@ -79,13 +82,22 @@ void eom_hal_set_sensor_sensitivity(uint8_t sensitivity) {
 //=== Vibration
 void eom_hal_set_motor_speed(uint8_t speed) {
     //uint8_t scaledSpeed = (uint8_t)((speed / 127.0f) * 255);  
+#if SOC_DAC_SUPPORTED
     dac_oneshot_output_voltage(dac1_handle, speed);
     dac_oneshot_output_voltage(dac2_handle, speed);
+#else
+    // No DAC support, implement alternative motor control here
+#endif
 }
 
 void eom_hal_init_motor(void) {
+#if SOC_DAC_SUPPORTED
     dac_oneshot_new_channel(&dac1_cfg, &dac1_handle);
     dac_oneshot_new_channel(&dac2_cfg, &dac2_handle);
+#else
+    // gpio_config(MOTOR1_PIN, GPIO_MODE_OUTPUT);
+    // gpio_config(MOTOR2_PIN, GPIO_MODE_OUTPUT);
+#endif
 }
 
 void eom_hal_set_led(uint8_t on) {

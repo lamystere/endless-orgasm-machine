@@ -2,13 +2,10 @@
 # without default 'CMakeLists.txt' file.
 
 FILE(GLOB_RECURSE app_sources ${CMAKE_SOURCE_DIR}/src/*.*)
-
-#REQUIRES spiffs
 idf_component_register(
         SRCS ${app_sources}
         INCLUDE_DIRS "include"
-#REQUIRES esp_adc_cal
-        PRIV_REQUIRES "nvs_flash" "spiffs"
+        PRIV_REQUIRES "nvs_flash" "spiffs" "esp_driver_dac" "esp_adc"
 #        EMBED_FILES "../examples/certs/*"
 )
 

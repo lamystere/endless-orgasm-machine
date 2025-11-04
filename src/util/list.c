@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "util/list.h"
 #include "esp_log.h"
 

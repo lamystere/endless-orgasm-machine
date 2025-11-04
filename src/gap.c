@@ -1,29 +1,4 @@
 #include "gap.h"
-//#include "common_inc.h"
-/* STD APIs */
-// #include <assert.h>
-// #include <stdbool.h>
-// #include <stdio.h>
-// #include <string.h>
-
-// /* ESP APIs */
-// #include "esp_log.h"
-// #include "nvs_flash.h"
-// #include "sdkconfig.h"
-
-// /* FreeRTOS APIs */
-// #include <freertos/FreeRTOS.h>
-// #include <freertos/task.h>
-
-// /* NimBLE stack APIs */
-#include "host/ble_hs.h"
-#include "host/ble_uuid.h"
-#include "host/util/util.h"
-#include "nimble/ble.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-
-#include "config.h"
 #include "gatt_svc.h"
 static const char* TAG = "ble_gap";
 
@@ -312,9 +287,8 @@ int gap_init(void) {
     /* Local variables */
     int rc = 0;
 
-    /* Call NimBLE GAP initialization API */
-    ble_svc_gap_init();
-
+    //ble_svc_gap_init() //is deprecated and no longer needed in modern NimBLE.
+    
     /* Set GAP device name */
     rc = ble_svc_gap_device_name_set(Config.bt_display_name);
     if (rc != 0) {

@@ -66,6 +66,8 @@ This can be tested on almost any ESP32 device without any extra hardware by touc
 
 To get it to resemble [the original Nogasm device](https://github.com/nogasm/nogasm) you can then add a [12v power supply](https://www.amazon.com/ACEIRMC-Battery-Plastic-Storage-Connect/dp/B0986RMKBJ) and [charger](https://www.amazon.com/Battery-Charger-Lithium-Display-RC123A/dp/B0CRKSFTK9), a [simple transistor](https://www.amazon.com/ALLECIN-IRF4905-Transistors-IRF4905PBF-Transistor/dp/B0CBKGJT9N) or more protected [motor controller](https://www.amazon.com/High-Power-Adjustment-Electronic-Controller-Brightness/dp/B0DZP1NCVW), a [flyback diode](https://www.amazon.com/15SQ045-Diodes-Schottky-Blocking-Silicon/dp/B0D4F2WVS5), and [vibrator motor](https://www.amazon.com/RPTCOTU-R555-Vibration-Motor-Electrodynamic/dp/B0CSYWK5KQ).  You could share that power supply to the esp32 [through a buck converter](https://www.amazon.com/Regulator-Reducer-Converter-Aircraft-MP1584EN/dp/B0B779ZYN1) to make the whole thing wireless.  That's it.  You can set this all up to attach to the buttplug rather than having a wires and tubes leading to a control box, but its a matter of opinion which way is better.  
 
+Tested boards: ESP32DEV, ESP32-WROOM32, ESP32-C6 (no motor out), ESP32-S3 
+
 ### Customization suggestions 
 - You can use xtoys as a hub to ramp up any number of vibrators, strokers, or e-stim units in sync with the EOM
 - If you want to connect Xtoys via wifi you will need to enable SSL in the main project ```data/config.json```.  The bluetooth connection is more useful since it sends pleasure level rather than arousal but there are some existing xtoys scripts that work with the edge-o-matic arousal level.
@@ -83,19 +85,15 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 - pinouts and schematics for suggested hardware
 - do canvas drawing to offscreen element for efficiency
 - finish integrated screen support / ip display
-- start access point mode if station wifi fails to connect
 - Is rampstop incrementing ok?
 - Is pressure multiplier working as intended?
-- Is Orgasm mode implemented?
 - Doesn't handle more than 4 clients.  Need to aggresively drop stale websocket connections
-- Is the chart too cpu heavy for slower devices?  how to optimize and keep longer windows?
 - ui and websockets using same endpoint if possible
-- A countdown of seconds until pleasure resumes would be fun
 - Put some effort into UI styling
-- LED and encoder options?
+- LED and encoder options? (Blink until connected)
 - Running average math seems off
-- Restore ability to connect directly to Lovense vibes, etc..
-- Implement patterns?
+- Restore ability to connect directly to Lovense vibes, etc.. maybe from GUI
+- Implement patterns?  That's a biggie
 - add X axis on chart (seconds)
 - chart glitch on left side at startup
 - make motor pin selection more intuitive
@@ -103,6 +101,7 @@ To get it to resemble [the original Nogasm device](https://github.com/nogasm/nog
 
 ### Notable differences from Edge-o-matic
 - Not tied to specific hardware!
+- Orgasm mode available over UI! (denies orgasms until timer runs out)
 - UI hosted on device and is phone friendly
 - communicates with Xtoys via BLE
 - defaults to automatic orgasm denial in ramp-stop mode
