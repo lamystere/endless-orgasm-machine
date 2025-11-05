@@ -9,7 +9,8 @@
 #include "nimble/ble.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
-
+#include "math.h"
+#include "eom-hal-esp32.h"
 #include "config.h"
 #include "orgasm_control.h"
 //#include "common_inc.h"
@@ -173,15 +174,20 @@ static int input1_chr_access(uint16_t conn_handle, uint16_t attr_handle,
             /* Create hexadecimal string representation */
             char hex_str[ctxt->om->om_len * 2 + 1]; // 2 chars per byte + null terminator
             for (int i = 0; i < ctxt->om->om_len; i++) {
-                sprintf(&hex_str[i * 2], "%02x", buf[i]);
+                sprintf(&hex_str[i * 2], "%02x ", buf[i]);
             }
             hex_str[ctxt->om->om_len * 2] = '\0'; // Null terminate
             
-            ESP_LOGI(TAG, "Received data (hex): %s", hex_str);
-
+            ESP_LOGE(TAG, "Received data (hex): %s", hex_str);
+            
             //update motor speed here
-            // uint16_t motor_speed = (uint16_t)strtol(hex_str, NULL, 16);
-            // orgasm_control_set_motor_speed(motor_speed);
+            uint16_t motor1_speed = floor(buf[0] * 2.55);
+            ESP_LOGE(TAG, "Setting motor1 speed to: %d, %02x", motor1_speed, buf[0]);
+            eom_hal_set_motor1_speed((uint8_t) motor1_speed);
+            uint16_t motor2_speed = floor(buf[1] * 2.55);
+            ESP_LOGE(TAG, "Setting motor2 speed to: %d, %02x", motor2_speed, buf[1]);
+            eom_hal_set_motor2_speed((uint8_t) motor2_speed);
+            orgasm_control_set_motor_speed_ex((uint8_t) motor1_speed, false); //update internal state without changing motor speed again
             return rc;
         }
         goto error;

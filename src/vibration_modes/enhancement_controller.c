@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include "orgasm_control.h"
 #include "vibration_mode_controller.h"
+#include <math.h>
 
 static const char* TAG = "enhancement_controller";
 
@@ -12,15 +13,15 @@ static struct {
 } state;
 
 static float start(void) {
+    state.stopped = ocFALSE;
     return Config.motor_start_speed;
 }
 
 static float increment(void) {
     if (Config.sensitivity_threshold == 0) return 1.0;
-
     if (state.stopped) {
-        return state.motor_speed +
-               calculate_increment(Config.motor_max_speed, 0, Config.edge_delay * 1000);
+        float speed_diff = calculate_increment(Config.motor_max_speed, 0, Config.edge_delay * 1000);
+        return fmaxf(state.motor_speed + speed_diff, 0.0f);
     }
 
     float speed_diff = Config.motor_max_speed - Config.motor_start_speed;
@@ -34,6 +35,7 @@ static void tick(float motor_speed, uint16_t arousal) {
 }
 
 static float stop(void) {
+    ESP_LOGI(TAG, "Enhancement Controller Stopping");
     state.stopped = ocTRUE;
     return Config.motor_max_speed;
 }

@@ -18,9 +18,11 @@ static float increment(void) {
     float motor_increment = calculate_increment(
         Config.motor_start_speed, Config.motor_max_speed, Config.motor_ramp_time_s
     );
+    //ESP_LOGI(TAG, "Ramp Increment: %f, %f", motor_increment, state.motor_speed + motor_increment);
 
     if (state.motor_speed < (Config.motor_max_speed - motor_increment)) {
-        return state.motor_speed + motor_increment;
+        state.motor_speed += motor_increment;
+        return state.motor_speed;
     } else {
         return Config.motor_max_speed;
     }

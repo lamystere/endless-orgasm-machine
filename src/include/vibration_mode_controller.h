@@ -36,7 +36,7 @@ typedef struct vibration_mode_controller {
 //
 #define calculate_increment(start, target, time_s)                                                 \
     ((time_s > 0 && Config.update_frequency_hz > 0)                                                \
-         ? ((float)(target - start) / ((float)time_s)) / Config.update_frequency_hz                \
+         ? ((float)(target - start) / ((float)time_s)) / ((float)Config.update_frequency_hz)                \
          : 0)
 
 // Vibration Modes

@@ -37,7 +37,8 @@ uint16_t orgasm_control_get_average_pressure(void);
 oc_bool_t orgasm_control_updated(void);
 void orgasm_control_clear_update_flag(void);
 void orgasm_control_increment_arousal_threshold(int threshold);
-void orgasm_control_set_motor_speed(uint8_t speed);
+void orgasm_control_set_motor_speed(uint8_t speed); // Defaults control_motor to true
+void orgasm_control_set_motor_speed_ex(uint8_t speed, bool control_motor); // Extended version with explicit control
 void orgasm_control_set_arousal_threshold(int threshold);
 int orgasm_control_get_arousal_threshold(void);
 int orgasm_control_get_orgasm_count(void);

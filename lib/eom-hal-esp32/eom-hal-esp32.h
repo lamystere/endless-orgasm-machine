@@ -20,7 +20,8 @@ void eom_hal_init_pressure_sensor(void);
 void eom_hal_setup_pressure_ambient(void);
 
 //=== Vibration
-void eom_hal_set_motor_speed(uint8_t speed);
+void eom_hal_set_motor1_speed(uint8_t speed);
+void eom_hal_set_motor2_speed(uint8_t speed);
 void eom_hal_init_motor(void);
 
 void eom_hal_set_led(uint8_t on);

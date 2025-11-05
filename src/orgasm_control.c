@@ -1,15 +1,8 @@
 #include "orgasm_control.h"
-//#include "accessory_driver.h"
-//#include "bluetooth_driver.h"
 #include "config.h"
 #include "eom-hal-esp32.h"
 #include "esp_log.h"
 #include "esp_timer.h"
-//#include "system/event_manager.h"
-#include "system/websocket_handler.h"
-////#include "ui/toast.h"
-//#include "ui/ui.h"
-//#include "util/i18n.h"
 #include "util/running_average.h"
 #include <math.h>
 #include <stdio.h>
@@ -45,7 +38,7 @@ static struct {
     int twitch_count;
     uint8_t control_motor;
     uint8_t prev_control_motor;
-    uint8_t motor_speed;
+    float motor_speed;
 } output_state;
 
 static struct {
@@ -98,23 +91,36 @@ int orgasm_control_get_orgasm_count(void) {
 int orgasm_control_get_arousal_sensitivity(void) {
     return Config.sensor_sensitivity;
 }
+
+
 /**
  * @brief Simplified method to set speed, which also handles broadcasting the event.
- * @param speed
+ * @param speed Motor speed value
+ * @param control_motor Whether to actually control the motor hardware (defaults to true)
  */
-void orgasm_control_set_motor_speed(uint8_t speed) {
-    static uint8_t last_speed = 0;
+void orgasm_control_set_motor_speed_ex(uint8_t speed, bool control_motor) {
     if (speed > Config.motor_max_speed) speed = Config.motor_max_speed;
-    if (speed == last_speed) return;
-    last_speed = speed;
 
-    #if MOTOR1_ENABLED
-        eom_hal_set_motor_speed(speed);  //implement change on motor control pin.
-    #endif
+    if (control_motor) {
+        #if MOTOR1_ENABLED
+        eom_hal_set_motor1_speed((uint8_t) speed);  
+        #endif
+        #if MOTOR2_ENABLED
+        eom_hal_set_motor2_speed((uint8_t) speed);  
+        #endif
+    }
 
     output_state.motor_speed = speed;
     //event_manager_dispatch(EVT_SPEED_CHANGE, NULL, speed);
     //bluetooth_driver_broadcast_speed(speed);
+}
+
+/**
+ * @brief Convenience wrapper that calls orgasm_control_set_motor_speed_ex with control_motor=true
+ * @param speed Motor speed value
+ */
+void orgasm_control_set_motor_speed(uint8_t speed) {
+    orgasm_control_set_motor_speed_ex(speed, true);
 }
 
 void orgasm_control_init(void) {
@@ -134,8 +140,7 @@ void orgasm_control_init(void) {
     // }
 }
 
-// Rename to get_vibration_mode_controller();
-static const vibration_mode_controller_t* orgasm_control_getVibrationMode() {
+static const vibration_mode_controller_t* get_vibration_mode_controller() {
     switch (Config.vibration_mode) {
     case Enhancement: return &EnhancementController;
 
@@ -152,9 +157,9 @@ static const vibration_mode_controller_t* orgasm_control_getVibrationMode() {
  * Main orgasm detection / edging algorithm happens here.
  * This happens with a default update frequency of 50Hz.
  */
-static void orgasm_control_updateArousal() {
+static void orgasm_control_update_arousal() {
     // Decay stale arousal value:
-    update_check(arousal_state.arousal, arousal_state.arousal * 0.99);
+    update_check(arousal_state.arousal, arousal_state.arousal * 0.99);  //why are we measureing motor speed as a float but arousal as an int?
 
     // Acquire new pressure and take average:
     arousal_state.pressure_value = eom_hal_get_pressure_reading();
@@ -209,14 +214,13 @@ static void orgasm_control_updateArousal() {
     }
 }
 
-static void orgasm_control_updateMotorSpeed() {
+static void orgasm_control_update_pleasure() {
     if (!output_state.control_motor) return;
 
-    const vibration_mode_controller_t* controller = orgasm_control_getVibrationMode();
+    const vibration_mode_controller_t* controller = get_vibration_mode_controller();
     controller->tick(output_state.motor_speed, arousal_state.arousal);
 
     // Calculate timeout delay
-    //oc_bool_t arousal_state.cooldown = ocFALSE;
     long on_time = (esp_timer_get_time() / 1000UL) - output_state.motor_start_time;
 
     //check if its been long enough since motor stopped
@@ -230,31 +234,30 @@ static void orgasm_control_updateMotorSpeed() {
 
     if (arousal_state.cooldown > 0) {
         // It hasn't been long enough since the pleasure stopped
-        orgasm_control_twitch_detect();  //if still aroused restart the cooldown timeout counter until arousal totally subsides
+        orgasm_control_twitch_detect();  //if still aroused restart the cooldown timeout counter until arousal is below threshold
 
     } else if (arousal_state.arousal > Config.sensitivity_threshold &&
                output_state.motor_speed > 0 && on_time > (Config.minimum_on_time * 1000)) {
         // EDGE DETECTED
-        // We're not already in timeout, but arousal is high enough to stop the motor
-        // Set the motor speed to 0, set stop time, and determine the new additional random time.
+        // We're not already in timeout, but arousal is high enough to stop the pleasure
         output_state.motor_speed = controller->stop();
         output_state.motor_stop_time = (esp_timer_get_time() / 1000UL);
         output_state.motor_start_time = 0;
         arousal_state.update_flag = ocTRUE;
-        arousal_state.cooldown = (Config.edge_delay * 1000) + output_state.random_additional_delay;
-        eom_hal_set_led(1); // Turn on LED when orgasm detected
+        arousal_state.cooldown = (Config.edge_delay * 1000) + output_state.random_additional_delay;  //calculate cooldown
         orgasm_state.orgasm_count += 1;
         ESP_LOGI(TAG, "Orgasm Denied! Total: %d", orgasm_state.orgasm_count);
-
+        
         //event_manager_dispatch(EVT_ORGASM_DENIAL, NULL, 0);
+        eom_hal_set_led(1); // Turn on LED when orgasm detected
 
-        // If Max Additional Delay is not disabled, caculate a new delay every time the motor is stopped
+        // If Max Additional Delay is not disabled, caculate a new delay for the next time pleasure is stopped
         if (Config.max_additional_delay  != 0) {
             output_state.random_additional_delay = random() % (Config.max_additional_delay * 1000);
         }
 
     } else if (output_state.motor_speed == 0 && output_state.motor_start_time == 0) {
-        //the timeout is over and motor is stopped
+        // the timeout is over and motor is stopped
         // its time to start again
         output_state.motor_speed = controller->start();
         output_state.motor_start_time = (esp_timer_get_time() / 1000UL);
@@ -448,9 +451,9 @@ void orgasm_control_tick() {
     unsigned long update_frequency_ms = 1000UL / Config.update_frequency_hz;
 
     if (millis - arousal_state.last_update_ms > update_frequency_ms) {
-        orgasm_control_updateArousal();
+        orgasm_control_update_arousal();
         orgasm_control_updateEdgingTime();
-        orgasm_control_updateMotorSpeed();
+        orgasm_control_update_pleasure();
         arousal_state.last_update_ms = millis;
 
         if (Config.classic_serial || logger_state.logfile) {
@@ -562,13 +565,11 @@ void orgasm_control_set_output_mode(orgasm_output_mode_t mode) {
     output_state.motor_stop_time = 0;
     post_orgasm_state.auto_edging_start_millis = (esp_timer_get_time() / 1000UL);
 
-    //arousal_state.cooldown = ocFALSE; // reset cooldown on mode change
-
     if (old == OC_MANUAL) {
-        const vibration_mode_controller_t* controller = orgasm_control_getVibrationMode();
+        const vibration_mode_controller_t* controller = get_vibration_mode_controller();
         //output_state.motor_speed = controller->start(); //lets let the motor run at its former speed
     } else if (mode == OC_MANUAL) {
-        const vibration_mode_controller_t* controller = orgasm_control_getVibrationMode();
+        const vibration_mode_controller_t* controller = get_vibration_mode_controller();
         //output_state.motor_speed = controller->stop();  //lets let the motor run at its former speed
     }
     //event_manager_dispatch(EVT_MODE_SET, NULL, mode);
@@ -577,7 +578,7 @@ void orgasm_control_set_output_mode(orgasm_output_mode_t mode) {
 void orgasm_control_pause_control() {
     output_state.prev_control_motor = output_state.control_motor;
     orgasm_control_set_output_mode(OC_MANUAL);
-    orgasm_control_set_motor_speed(Config.motor_max_speed);
+    orgasm_control_set_motor_speed(Config.motor_max_speed);  //review this..would be nice to keep depletion mode working
 }
 
 void orgasm_control_resume_control() {

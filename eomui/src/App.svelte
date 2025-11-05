@@ -483,7 +483,9 @@
     }
 
     //countdown
-    ctx.font = "bold 3em sans-serif";
+    ctx.font = chartCanvas.width > 600 ? (
+        chartCanvas.width > 900 ? "bold 3em sans-serif" : "2em sans-serif"
+      ) : "1em sans-serif";
     // ctx.fillStyle = "grey";
     if (isOnCooldown(_readings[_readings.length - 1])) {
       const remaining = Math.round(lastNumericValue(_readings,"cooldown") / 1000);
@@ -493,7 +495,7 @@
       let timeStr: string = Math.ceil(lastNumericValue(_readings,"permit")) > 60 ? 
         Math.ceil(lastNumericValue(_readings,"permit")/60).toString() + " MINUTES" : 
         lastNumericValue(_readings,"permit").toString() + " SECOND" + (lastNumericValue(_readings,"permit") > 1 ? "S" : "");
-      ctx.strokeText(`ORGASM PERMITTED IN ${timeStr}`, chartCanvas.width/4, chartCanvas.height/2);
+      ctx.strokeText(`ORGASM PERMITTED IN ${timeStr}`, chartCanvas.width/5, chartCanvas.height/2);
     }
 
 
@@ -536,13 +538,6 @@
       if (key in settings) {
         settings[key as keyof typeof settings].value = Number(value);
       }
-      // if (key === "sensitivity_threshold") {
-      //   settings.sensitivity_threshold.value = Number(value);
-      // } else if (key === "motor_ramp_time_s") {
-      //   settings.motor_ramp_time_s.value = Number(value);
-      // } else if (key === "motor_max_speed") {
-      //   settings.motor_max_speed.value = Number(value);
-      // }
     }
   }
 
@@ -846,13 +841,13 @@
         )} %
       </div>
 
-      <div class="statBoxButton" title="Click to reset denied orgasms count"
+      <div class="statBoxButton" title="Click to reset {settings.vibration_mode.value !== 3 ? 'denied ' : ''}orgasms count"
           onclick={() => {
           handleBasicChange("resetDenied", null);
         }}
       style="border-color: #FF7FFF; color: #FF7FFF;" role="none"
       >
-        Denied: {lastNumericValue($state.snapshot(readings), "denied")}
+        {settings.vibration_mode.value === 3 ? 'Orgasms' : 'Denied'}: {lastNumericValue($state.snapshot(readings), "denied")}
       </div>
 
 
@@ -870,6 +865,9 @@
               type="radio"
               onchange={() =>{
                 handleBasicChange("setMode", runMode);
+                if (runMode === 'ORGASM' && settings.vibration_mode.value === 3) {
+                  handleSettingChange("vibration_mode", 2); //set to default mode if mode is 0
+                }
                 currentPleasure = $state.snapshot(readings)[$state.snapshot(readings).length - 1].motor;
               }}
               name="runmode"
@@ -885,18 +883,20 @@
       >
         <div style="font-weight: bold; margin-right: 0.5em;">Mode:</div>
         {#each Object.entries(vibration_modes) as [modeId, modeName], index}
+          {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode !== 'ORGASM' || modeId !== '3'}
           <div class="radioBoxItem">
             <input
-              id="vibemode-{modeId}"
-              type="radio"
-              onchange={() =>
+            id="vibemode-{modeId}"
+            type="radio"
+            onchange={() =>
                 handleSettingChange("vibration_mode", Number(modeId))}
               name="vibemode"
               value={modeId}
               checked={settings.vibration_mode.value === Number(modeId)}
-            />
-            <label for="vibemode-{modeId}" class={settings.vibration_mode.value === Number(modeId) ? "radioChosen" : "radioChoice"} >{modeName}</label>
-          </div>
+              />
+              <label for="vibemode-{modeId}" class={settings.vibration_mode.value === Number(modeId) ? "radioChosen" : "radioChoice"} >{modeName}</label>
+            </div>
+            {/if}
         {/each}
       </div>
     </div>
