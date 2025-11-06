@@ -12,7 +12,7 @@ arguments to that command. Responses streamed from the device should be handled 
 ```json
 {
     "configSet": {
-        "motor_max_speed": 255
+        "max_pleasure": 255
     },
     "configList": {
         "nonce": 1234
@@ -54,7 +54,7 @@ Sets one or more configuration values.
 **Example:**
 ```json
 "configSet": { 
-    "motor_max_speed": 255 
+    "max_pleasure": 255 
 }
 ```
  
@@ -152,7 +152,7 @@ A listing of the current configuration.
 **Example:**
 ```json
 "configList": {
-    "motor_max_speed": 255,
+    "max_pleasure": 255,
     "wifi_on": false
 }
 ```

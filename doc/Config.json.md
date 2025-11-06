@@ -10,15 +10,15 @@ Here is a quick summary of config variables:
 |`wifi_ssid`|String|""|Your WiFi SSID.|
 |`wifi_key`|String|""|Your WiFi Password.|
 |`wifi_on`|Boolean|false|Enable WiFi and the Websocket server. Cannot be enabled if AzureFang is on.|
-|`bt_display_name`|String|"MonsterPub"|BT device name.  Currently emulates MonsterPub device for Xtoys compatibility.|
+|`bt_display_name`|String|"Libotoy"|BT device name.  Currently emulates MonsterPub device for Xtoys compatibility.|
 |`bt_on`|Boolean|true|Enable BT connectivity.|
 |`force_bt_coex`|Boolean|false|Force BT and WiFi at the same time.|
 |`led_brightness`|Byte|128|Status LED maximum brightness.|
 |`websocket_port`|Int|80|Port to listen for incoming Websocket connections.|
 |`use_ssl`|Boolean|true|Enable SSL server, which is a bit annoying to accept unsigned certificates but required for xtoys compatibility|
 |`hostname`|String|"eom3k"|Local hostname for your device.|
-|`motor_start_speed`|Byte|10|The minimum speed the motor will start at in automatic mode.|
-|`motor_max_speed`|Byte|255|Maximum speed for the motor in auto-ramp mode.|
+|`initial_pleasure`|Byte|10|The minimum speed the motor will start at in automatic mode.|
+|`max_pleasure`|Byte|255|Maximum speed for the motor in auto-ramp mode.|
 |`motor_ramp_time_s`|Int|30|The time it takes for the motor to reach Motor Max Speed in automatic mode.|
 |`edge_delay`|Int|10|Minimum time (s) after edge detection before resuming stimulation.|
 |`max_additional_delay`|Int|10|Maximum time (s) that can be added to the edge delay before resuming stimulation. A random number will be picked between 0 and this setting each cycle. 0 to disable.|

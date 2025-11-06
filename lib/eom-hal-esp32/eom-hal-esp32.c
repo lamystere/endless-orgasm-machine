@@ -37,7 +37,6 @@ adc_oneshot_unit_init_cfg_t adc1_cfg = {
 uint16_t eom_hal_get_pressure_reading(void) {
     int raw = 0;
     adc_oneshot_read(adc1_handle, ADC_CHANNEL_0, &raw);
-    // adc1_get_raw(ADC_CHANNEL_5);
 
     //ESP_LOGI(TAG, "Pressure raw: %d", raw);
     raw = raw - pressure_ambient;

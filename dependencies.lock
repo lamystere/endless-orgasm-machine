@@ -12,10 +12,10 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.5.0
+    version: 5.4.1
 direct_dependencies:
 - espressif/mdns
 - idf
 manifest_hash: 46d1d81564d9459b9fa4b696f2d7991a56e4657460da6e6cdd9ea7d3b4c8b663
-target: esp32
+target: esp32s3
 version: 2.0.0

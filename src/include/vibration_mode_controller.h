@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 typedef struct vibration_pattern_step {
-    uint8_t motor_speed;
+    uint8_t pleasure;
     uint8_t hold_ticks;
     bool ramp_to;
 } vibration_pattern_step_t;
@@ -19,7 +19,7 @@ typedef struct vibration_pattern {
 } vibration_pattern_t;
 
 typedef float (*vibration_mode_callback_t)(void);
-typedef void (*vibration_mode_tick_func_t)(float motor_speed, uint16_t arousal);
+typedef void (*vibration_mode_tick_func_t)(float pleasure, uint16_t arousal);
 
 typedef struct vibration_mode_controller {
     vibration_mode_callback_t start;

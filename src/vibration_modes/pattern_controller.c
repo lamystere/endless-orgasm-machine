@@ -6,7 +6,7 @@
 static const char* TAG = "pattern_controller";
 
 static struct {
-    float motor_speed;
+    float pleasure;
     uint16_t arousal;
     size_t pattern_step;
     uint32_t step_ticks;
@@ -26,8 +26,8 @@ static float start(void) {
 
 static float increment(void) { return 0.0f; }
 
-static void tick(float motor_speed, uint16_t arousal) {
-    state.motor_speed = motor_speed;
+static void tick(float pleasure, uint16_t arousal) {
+    state.pleasure = pleasure;
     state.arousal = arousal;
 }
 

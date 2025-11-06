@@ -20,10 +20,10 @@ void api_broadcast_readings(void) {
     cJSON* root = cJSON_AddObjectToObject(payload, "readings");
 
     cJSON_AddNumberToObject(root, "arousal", orgasm_control_get_arousal());
-    cJSON_AddNumberToObject(root, "cooldown", orgasm_control_cooldown());
+    cJSON_AddNumberToObject(root, "cooldown", orgasm_control_get_cooldown());
     cJSON_AddNumberToObject(root, "denied", orgasm_control_get_orgasm_count());
     cJSON_AddNumberToObject(root, "millis", esp_timer_get_time() / 1000);
-    cJSON_AddNumberToObject(root, "motor", orgasm_control_get_motor_speed());
+    cJSON_AddNumberToObject(root, "motor", orgasm_control_get_pleasure());
     cJSON_AddNumberToObject(root, "pavg", orgasm_control_get_average_pressure());
     cJSON_AddNumberToObject(root, "permit", orgasm_control_get_permit_orgasm_remaining_seconds());
     cJSON_AddNumberToObject(root, "pressure", orgasm_control_get_last_pressure());

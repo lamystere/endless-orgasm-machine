@@ -27,11 +27,12 @@ Example: If you join the EOM WiFi access point the IP will be: ```192.168.4.1```
 ![Screenshot](doc/Screenshot2.png)
 
 ## bluetooth usage
-Using Xtoys you can connect to the EOM and let it control your other Xtoys devices.  It emulates a [MonsterPub Mr. Devil Kegel (since renamed)](https://monsterpub.com/products/mp2-u-shaped-remote-egg-with-kegel).  The "pressure" reading corresponds to the "pleasure" output of the EOM.  Vibrator strength can be controlled in manual mode.  
+WiFi is NOT necessary anymore!  The UI can work through bluetooth now! A website and app are in the works.  At the moment you still need to connect to the /ui endpoint or a local vite server to see the UI and hit the bluetooth connection button.
 
-Why Mr Devil?  Because it's one of the few bluetooth devices in Xtoys that has 2 way communication and high resolution (16 bit).  If you wish to connect Xtoys to the EOM over wifi you can choose the Edge-o-matic 3000 and it is backwards compatible.  This is less useful because Xtoys only chose to implement "arousal" and "pressure" inputs, so all the logic that goes into calculating the amount of pleasure is ignored.  
+Using Xtoys you can connect to the EOM and let it control your other Xtoys devices.  For Xtoys it emulates a device called [MonsterPub Mr. Devil Kegel](https://monsterpub.com/products/mp2-u-shaped-remote-egg-with-kegel).  The "pressure" reading corresponds to the "pleasure" output of the EOM.  The sliders for vibrator strength will work in manual mode.
 
-If you have the skills you could control other toys through bluetooth with your own controller rather than using Xtoys, but its popular and free.
+<sub>Why Mr Devil?  Because it's one of the few bluetooth devices in Xtoys that has 2 way communication and high resolution (16 bit).  If you wish to connect Xtoys to the EOM over wifi you can choose the Edge-o-matic 3000 and it is backwards compatible.  This is less useful because Xtoys only chose to implement "arousal" and "pressure" inputs, so all the logic that goes into calculating the amount of pleasure is ignored.  </sub>
+
 
 ### Pleasure Modes:
 
@@ -93,6 +94,7 @@ This project was first vastly simplified then expanded with compatibility in min
 - chart glitch on left side at startup
 - make motor pin selection more intuitive
 - add build walkthrough to docs and more examples
+- disable internal motor control option?
 
 ### Notable differences from Edge-o-matic
 - Not tied to specific hardware!

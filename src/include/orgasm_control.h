@@ -30,25 +30,26 @@ void orgasm_control_tick(void);
 // Fetch Data
 uint16_t orgasm_control_get_arousal(void);
 float orgasm_control_get_arousal_percent(void);
-uint8_t orgasm_control_get_motor_speed(void);
-int orgasm_control_get_motor_speed_percent(void);
+uint8_t orgasm_control_get_pleasure(void);
+uint8_t orgasm_control_get_pleasure_percent(void);
 uint16_t orgasm_control_get_last_pressure(void);
 uint16_t orgasm_control_get_average_pressure(void);
 oc_bool_t orgasm_control_updated(void);
 void orgasm_control_clear_update_flag(void);
 void orgasm_control_increment_arousal_threshold(int threshold);
-void orgasm_control_set_motor_speed(uint8_t speed); // Defaults control_motor to true
-void orgasm_control_set_motor_speed_ex(uint8_t speed, bool control_motor); // Extended version with explicit control
+void orgasm_control_set_pleasure(uint8_t speed); // Defaults control_motor to true
+void orgasm_control_set_pleasure_ex(uint8_t speed, bool control_motor); // Extended version with explicit control
 void orgasm_control_set_arousal_threshold(int threshold);
-int orgasm_control_get_arousal_threshold(void);
-int orgasm_control_get_orgasm_count(void);
-int orgasm_control_get_arousal_sensitivity(void);
-oc_bool_t orgasm_control_cooldown(void);
+uint16_t orgasm_control_get_arousal_threshold(void);
+uint8_t orgasm_control_get_orgasm_count(void);
+uint8_t orgasm_control_get_arousal_sensitivity(void);
+uint8_t orgasm_control_get_cooldown(void);
 void orgasm_control_reset_denied(void);
 void orgasm_control_trigger_arousal(void);
 uint16_t orgasm_control_get_permit_orgasm_remaining_seconds(void);
-void orgasm_control_set_permit_orgasm_remaining_seconds(uint8_t seconds);
-
+uint8_t orgasm_control_get_permit_orgasm_remaining_minutes(void);
+void orgasm_control_set_permit_orgasm_remaining_seconds(uint16_t seconds);
+void orgasm_control_set_permit_orgasm_remaining_minutes(uint8_t minutes);
 // Set Controls
 void orgasm_control_control_motor(orgasm_output_mode_t control);
 

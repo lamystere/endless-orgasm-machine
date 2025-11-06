@@ -35,7 +35,7 @@ cmd_edging_set_motor(cJSON* command, cJSON* response, websocket_client_t* client
         cJSON_AddStringToObject(response, "mode", orgasm_control_get_output_mode_str());
     }
 
-    orgasm_control_set_motor_speed(speed);
+    orgasm_control_set_pleasure(speed);
     //cJSON_AddNumberToObject(response, "speed", speed);  //immediate response seemse to be crashing websocket server
     return CMD_OK;
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Action } from "svelte/action";
+    import { run } from "svelte/legacy";
 
   let isSSL = window.location.protocol === "https:";
   let wssUrl = $state(
@@ -16,15 +17,18 @@
 
   type eomReading = {
     arousal: number;
-    cooldown?: number; //ms left of denial period
+    cooldown?: number; //s left of denial period
     denied?: number;
     localTime?: number;
     millis: number;
     motor: number; //calling this "pleasure" now since it can change more than motors but leaving it backwards compatible
-    pavg: number;
+    pavg?: number; //should just send this as pressure even when its the average
+    pleasure?: number;
+    permit?: number;
     pressure: number;
     runMode: string;
-    sensitivity: number;
+    pleasureMode?: number;
+    sensitivity?: number; //this is more of a setting than a realtime requirement
     threshold: number;
   };
 
@@ -40,9 +44,9 @@
   type eomSettings = {
     sensitivity_threshold: settingType;
     vibration_mode: settingType;
-    motor_max_speed: settingType;
+    max_pleasure: settingType;
     motor_ramp_time_s: settingType;
-    motor_start_speed: settingType;
+    initial_pleasure: settingType;
     edge_delay: settingType;
     max_additional_delay: settingType;
     minimum_on_time: settingType;
@@ -73,13 +77,13 @@
   function getNumericValue(r: eomReading, lineType: string): number {
     if (lineType === "pleasure" || lineType === "motor") {
       let yScaledMotor = typeof r.motor === "number"
-      ? Math.round(r.motor / settings.motor_max_speed.value * maxY)
+      ? Math.round(r.motor / settings.max_pleasure.value * maxY)
       : 0;
-      //console.log(yScaledMotor,r.motor,settings.motor_max_speed.value,maxY);
+      //console.log(yScaledMotor,r.motor,settings.max_pleasure.value,maxY);
       return yScaledMotor;
     }
     
-    if (lineType === "runMode") return 0;
+    if (lineType === "runMode") return runModes.indexOf(r.runMode);
     if (lineType === "denials") { //using "denials" for the scaled value
       return typeof r.denied === "number" ? Math.round(r.denied / maxDenied * maxY) : 0;
     }
@@ -112,7 +116,7 @@
       type: "mode",
       description: "The pleasure algorithm used during automatic stimulation.",
     },
-    motor_max_speed: {
+    max_pleasure: {
       value: 255,
       min: 0,
       max: 255,
@@ -128,7 +132,7 @@
       type: "seconds",
       description: "Time (s) taken to ramp the pleasure from the starting amount to the maximum.",
     },
-    motor_start_speed: {
+    initial_pleasure: {
       value: 10,
       min: 0,
       max: 255,
@@ -265,8 +269,8 @@
   ];
   
   let modalSettings: string[] = [
-    "motor_max_speed",
-    "motor_start_speed",
+    "max_pleasure",
+    "initial_pleasure",
     "sensor_sensitivity",
     "max_additional_delay",
     "minimum_on_time",
@@ -328,8 +332,11 @@
   let currentPleasure = $state(0) as number;
   let maxDenied = $state(20) as number;
 
-  let isConnected = $state(false) as boolean;
+  let isWsConnected = $state(false) as boolean;
+  let isBtConnected = $state(false) as boolean;
 
+  let mainSend: any = null;
+  let btDevice: any = null;
   let socket = $state() as WebSocket;
 
   let showModal = $state(false);
@@ -389,12 +396,6 @@
         i + keyWidth + keyPadding,
         keyHeight / 1.666,
         keySpacing - keyWidth - keyPadding,
-      );
-      console.log(
-        "Drawing key:",
-        lineType,
-        i + keyWidth + keyPadding,
-        Math.round((ctx.canvas.height * padding.top) / 100) - 20,
       );
       i += keySpacing;
     }
@@ -488,13 +489,12 @@
       ) : "1em sans-serif";
     // ctx.fillStyle = "grey";
     if (isOnCooldown(_readings[_readings.length - 1])) {
-      const remaining = Math.round(lastNumericValue(_readings,"cooldown") / 1000);
-      //console.log("On Cooldown:", lastNumericValue(_readings,"cooldown"), remaining,_readings[_readings.length - 1]);
-      ctx.strokeText(isAroused(_readings[_readings.length - 1]) ? `DENIED ORGASM - IN TIME OUT` : `DENIED FOR ${remaining} MORE SECONDS`, chartCanvas.width/4, chartCanvas.height/2);
+      ctx.strokeText(isAroused(_readings[_readings.length - 1]) ? `DENIED ORGASM - IN TIME OUT` : `DENIED FOR ${lastNumericValue(_readings,"cooldown")} MORE SECONDS`, chartCanvas.width/4, chartCanvas.height/2);
     } else if ((_readings[_readings.length - 1].runMode ?? "") === "ORGASM") {
-      let timeStr: string = Math.ceil(lastNumericValue(_readings,"permit")) > 60 ? 
-        Math.ceil(lastNumericValue(_readings,"permit")/60).toString() + " MINUTES" : 
-        lastNumericValue(_readings,"permit").toString() + " SECOND" + (lastNumericValue(_readings,"permit") > 1 ? "S" : "");
+      let lastPermit = lastNumericValue(_readings,"permit");
+      let timeStr: string = lastPermit > 60 ? 
+        Math.ceil(lastPermit/60).toString() + " MINUTES" : 
+        lastPermit.toString() + " SECOND" + (lastPermit > 1 ? "S" : "");
       ctx.strokeText(`ORGASM PERMITTED IN ${timeStr}`, chartCanvas.width/5, chartCanvas.height/2);
     }
 
@@ -579,6 +579,7 @@
         console.warn("Received data missing expected fields:", wsMsg);
         return;
       }
+      wsMsg.pleasure = wsMsg.motor; //backwards compatibilitypermitpermit
       wsMsg.localTime = Date.now();
       readings.push(wsMsg);
       //currentPleasure = getNumericValue(wsMsg, "pleasure");
@@ -597,7 +598,9 @@
   }
 
   function handleOpen() {
-    isConnected = true;
+    isWsConnected = true;
+    btDevice.disconnect();
+    isBtConnected = false;
     console.log("WebSocket connection established");
     let msg = JSON.stringify({ configList: null });
     socket.send(msg);
@@ -608,7 +611,7 @@
       let lastReadingTime = $state.snapshot(readings)[$state.snapshot(readings).length - 1].localTime ?? 0;
       if (Date.now() - lastReadingTime > 10000) { // 10 seconds threshold
         console.log("WebSocket data is stale...dropped connection?");
-        isConnected = false;
+        isWsConnected = false;
         socket.close();
         socket = new WebSocket(wssUrl);
         initializeWebSocket(socket);
@@ -621,29 +624,67 @@
   }
 
   function handleError(event: Event) {
-    isConnected = false;
+    isWsConnected = false;
     console.error("WebSocket error observed:", event);
   }
 
   function handleSettingChange(setting_name: string, value: number) {
-    settings[setting_name as keyof typeof settings].value = value;
-    let msg = JSON.stringify({
-      configSet: { [setting_name]: value },
-    });
-    socket.send(msg);
-    console.log(`Sent ${setting_name} change:`, value);
+    if (isWsConnected) {
+      settings[setting_name as keyof typeof settings].value = value;
+      let msg = JSON.stringify({
+        configSet: { [setting_name]: value },
+      });
+      socket.send(msg);
+      console.log(`Sent ${setting_name} change:`, value);
+    } else if (isBtConnected && mainSend != null) {
+      mainSend.writeValue(
+        new Uint8Array([
+          0x02, // Command identifier for setting change
+          ...new TextEncoder().encode(setting_name),
+          0x3A, // Separator ':'
+          ...new TextEncoder().encode(value.toString()), // Send value in hexadecimal
+        ])
+      ).then(() => {
+        console.log(`Sent ${setting_name} change via Bluetooth:`,  value.toString());
+      }).catch((error: any) => {
+        console.error('Error sending setting change via Bluetooth:', error);
+      });
+      // Handle Bluetooth connection case
+    }
   }
 
   function handleBasicChange(setting_name: string, value: number | string | null) {
-    let msg = JSON.stringify({
-      [setting_name]: value,
-    });
-    socket.send(msg);
+    if (isWsConnected)  {
+      let msg = JSON.stringify({
+        [setting_name]: value,
+      });
+      socket.send(msg);
+    } else if (isBtConnected) {
+      let currentMode: number = setting_name == "setMode" ? runModes.indexOf(String(value)) : lastNumericValue($state.snapshot(readings), "runMode");
+      let btData;
+      if (setting_name == "setMotor") {
+        let currentPleasure: number = setting_name == "setMotor" ? Number(value) : lastNumericValue($state.snapshot(readings), "pleasure");
+        btData = new Uint8Array([0x01,currentMode, 0, 0, Number(currentPleasure)]);
+      } else {
+        //pleasure amount is optional at end of byte array
+        btData = new Uint8Array([0x01,currentMode, setting_name == "triggerArousal" ? 1 : 0, setting_name == "resetDenial" ? 1 : 0]);
+      }
+      console.log(`sending ${setting_name} change via Bluetooth:`, btData);
+      mainSend.writeValue(btData).then(() => {
+        console.log(`Sent ${setting_name} change via Bluetooth:`, value);
+      }).catch((error: any) => {
+        console.error('Error sending setting change via Bluetooth:', error);
+      });
+          
+    } else {
+      console.warn("Not connected via WebSocket or Bluetooth. Cannot send setting change.");
+      return;
+    }
     console.log(`Sent ${setting_name} change:`, value);
   }
 
   let debounceTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-  const DEBOUNCE_DELAY = 20; //  delay in ms
+  const DEBOUNCE_DELAY = 30; //  delay in ms
 
   // This needs work
   function debouncedBasicChange(setting_name: string, value: number | string) {
@@ -688,12 +729,12 @@
   };
 
   onMount(() => {
-    socket = new WebSocket(wssUrl);
-    initializeWebSocket(socket);
+    //socket = new WebSocket(wssUrl);
+    //initializeWebSocket(socket);
 
     setInterval(() => {
-      if (!isConnected) {
-        console.log("WebSocket is not connected");
+      if (!$state.snapshot(isWsConnected) && !$state.snapshot(isBtConnected)) {
+        console.log("Not connected");
         return;
       }
       console.log(
@@ -706,10 +747,18 @@
   function handleConnect() {
     wssUrl = wssUrl.trim();
     socket?.close();
-    isConnected = false;
+    isWsConnected = false;
     socket = new WebSocket(wssUrl);
     initializeWebSocket(socket);
     console.log("Connecting to ", wssUrl, socket);
+  }
+
+  function onDisconnected(event: any) {
+    const device = event.target;
+    mainSend = null;
+    btDevice = null;
+    console.log(`Device ${device.name} is disconnected.`);
+    isBtConnected = false;
   }
 </script>
 
@@ -767,12 +816,114 @@
             handleConnect();
           }}
         />
-        {#if isConnected}
+        {#if isWsConnected}
+        <span style="color: green; font-size: small;"> ● Connected</span>
+        {:else}
+        <span style="color: red; font-size: small;"> ● Disconnected</span>
+        {/if}
+      </div>  
+
+      <div style="white-space: nowrap; display: flex; align-items: center;">
+        <button
+          onclick={() => {
+            const bt = (navigator as any).bluetooth; 
+            if (!bt) {
+              console.error('Web bluetooth is not available on iOS devices or Firefox.');
+              return;
+            }
+            bt.requestDevice({
+              optionalServices: [0x6969, 0x696A, 0x696B],
+              filters: [{
+                namePrefix: 'Libotoy',
+              }]
+            })
+              .then((device: any) => {
+                console.log('Connecting to device:', device);
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+                btDevice = device;
+                device.gatt.connect()
+                  .then((server: any) => {
+                    console.log('Connected to GATT server:', server);
+                    server.getPrimaryService(0x6969).then((service: any) => {
+                      console.log('Got primary service:', service);
+                      //readings
+                      service.getCharacteristic(0x696a).then((characteristic: any) => {
+                        console.log('Got characteristic:', characteristic);
+
+                        characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
+                          const value = event.target.value;
+                          // Assuming the value is a Uint8Array
+                          const data = new Uint8Array(value.buffer);
+                          console.log('Received data:', data);
+                          // Process the received data as needed
+                            let newReading: eomReading = {
+                            pressure: data[0]* 16, // scale to 0-4096
+                            arousal: data[1] * 16, // scale to 0-4096
+                            threshold: data[2]* 16, // scale to 0-4096
+                            motor: data[3],
+                            pleasure: data[3],
+                            cooldown: data[4],
+                            denied: data[5],
+                            runMode: runModes[data[6]] ?? "AUTOMATIC",
+                            pleasureMode: data[7],
+                            permit: data[8] * 255 + (data[9] ?? 0),
+                            millis: Date.now(),
+                            localTime: Date.now(),
+                          };
+                          readings.push(newReading);
+                          while (
+                            readings.length > 0 && (Date.now() - (readings[0].localTime ?? 0) > chartTime * 1000)  
+                          ) {
+                            //the first reading is older than chartTime seconds
+                            readings.shift();
+                          }
+                          chartCanvas?.dispatchEvent(new CustomEvent("updated", {}));
+
+                        });
+
+                        characteristic.startNotifications().then(() => {
+                          console.log('Notifications started for characteristic:', characteristic.uuid);
+                          socket?.close();
+                          isWsConnected = false;
+                          isBtConnected = true;
+                        });
+
+                      });
+
+                      //controls
+                      service.getCharacteristic(0x696b).then((characteristic: any) => {
+                        console.log('Got control characteristic:', characteristic);
+                        mainSend = characteristic;
+                        console.log('Ready to send control commands via Bluetooth.',mainSend);
+                      });
+
+                    })
+                    .catch((error: any) => {
+                      console.error('Error getting primary service:', error);
+                    });
+                  })
+                  .catch((error: any) => {
+                    console.error('Error connecting to GATT server:', error);
+                  });
+              })
+              .catch((error: any) => {
+                console.error(error);
+              });
+          }}
+          style="cursor: pointer; margin: .2%;padding-bottom: 0;"
+          aria-label="Connect via bluetooth" 
+          ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 976" width="23" height="20" aria-label="Bluetooth">
+              <rect ry="291" height="976" width="640" fill="#0a3d91"/>
+                <path d="m157 330 305 307-147 178V179l147 170-305 299" stroke="#FFF" stroke-width="53" fill="none"/>
+              </svg>
+        </button>
+        {#if isBtConnected}
           <span style="color: green; font-size: small;"> ● Connected</span>
         {:else}
           <span style="color: red; font-size: small;"> ● Disconnected</span>
         {/if}
-      </div>  
+      </div>
+
       <button
         onclick={() => (showModal = true)}
         style="cursor: pointer; margin: .2%;padding-bottom: 0;"
@@ -912,7 +1063,7 @@
       id="currentPleasure"
       type="range"
       min="0"
-      max={settings.motor_max_speed.value}
+      max={settings.max_pleasure.value}
       step="1"
       bind:value={currentPleasure}
       style="width: 100%;accent-color: orange; background: linear-gradient(to right, orange 0%, orange 100%);"

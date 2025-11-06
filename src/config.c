@@ -21,7 +21,7 @@ CONFIG_DEFS {
     CFG_NUMBER(ap_max_connections, 4);
 
     // Bluetooth Settings
-    CFG_STRING(bt_display_name, "MonsterPub");
+    CFG_STRING(bt_display_name, "Libotoy");
     CFG_BOOL(bt_on, true);
     CFG_BOOL(force_bt_coex, true);
 
@@ -40,8 +40,8 @@ CONFIG_DEFS {
     // UI Settings
 
     // Orgasm Settings
-    CFG_NUMBER(motor_max_speed, 255);
-    CFG_NUMBER(motor_start_speed, 10);
+    CFG_NUMBER(max_pleasure, 255);
+    CFG_NUMBER(initial_pleasure, 10);
     CFG_NUMBER(edge_delay, 10);
     CFG_NUMBER(max_additional_delay, 10);
     CFG_NUMBER(minimum_on_time, 1);

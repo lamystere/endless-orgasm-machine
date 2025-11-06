@@ -5,36 +5,36 @@
 static const char* TAG = "ramp_stop_controller";
 
 static struct {
-    float motor_speed;
+    float pleasure;
     uint16_t arousal;
 } state;
 
 static float start(void) {
-    state.motor_speed = Config.motor_start_speed;
-    return Config.motor_start_speed;
+    state.pleasure = Config.initial_pleasure;
+    return Config.initial_pleasure;
 }
 
 static float increment(void) {
     float motor_increment = calculate_increment(
-        Config.motor_start_speed, Config.motor_max_speed, Config.motor_ramp_time_s
+        Config.initial_pleasure, Config.max_pleasure, Config.motor_ramp_time_s
     );
-    //ESP_LOGI(TAG, "Ramp Increment: %f, %f", motor_increment, state.motor_speed + motor_increment);
+    //ESP_LOGI(TAG, "Ramp Increment: %f, %f", motor_increment, state.pleasure + motor_increment);
 
-    if (state.motor_speed < (Config.motor_max_speed - motor_increment)) {
-        state.motor_speed += motor_increment;
-        return state.motor_speed;
+    if (state.pleasure < (Config.max_pleasure - motor_increment)) {
+        state.pleasure += motor_increment;
+        return state.pleasure;
     } else {
-        return Config.motor_max_speed;
+        return Config.max_pleasure;
     }
 }
 
-static void tick(float motor_speed, uint16_t arousal) {
-    state.motor_speed = motor_speed;
+static void tick(float pleasure, uint16_t arousal) {
+    state.pleasure = pleasure;
     state.arousal = arousal;
 }
 
 static float stop(void) {
-    state.motor_speed = 0.0f;
+    state.pleasure = 0.0f;
     return 0.0f;
 }
 

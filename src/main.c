@@ -54,13 +54,13 @@ void spiffs_init() {
     // }
 // }
 
-// static void ble_task(void* args) {
-    // for (;;) {   
-    // send_output1();
+static void ble_task(void* args) {
+    for (;;) {   
+    send_output1();
 
-    // vTaskDelay(1);
-    // }
-// }
+    vTaskDelay(10);
+    }
+}
 
 
 static void loop_task(void* args) {
@@ -100,7 +100,7 @@ static void main_task(void* args) {
     for (;;) {
         loop_task(NULL);
         orgasm_control_tick();
-        send_output1();
+        //send_output1();
         vTaskDelay(1);
     }
 }
@@ -183,22 +183,26 @@ void app_main() {
     // vTaskDelayUntil(&boot_tick, 1000UL / portTICK_PERIOD_MS);
     //eom_hal_set_encoder_rgb(0, 255, 0);
 
+
+    // Initialize Bluetooth
+    // Blue = prepare Bluetooth and Drivers
+    // vTaskDelayUntil(&boot_tick, 1000UL / portTICK_PERIOD_MS);
+    //eom_hal_set_encoder_rgb(0, 0, 255);
+
+    if (Config.bt_on) {
+        ble_host_config_init();
+    }
+
+
     // Initialize WiFi
     if (Config.wifi_on) {
         http_server_init();
         wifi_manager_init();
     }
 
-    // Blue = prepare Bluetooth and Drivers
-    // vTaskDelayUntil(&boot_tick, 1000UL / portTICK_PERIOD_MS);
-    //eom_hal_set_encoder_rgb(0, 0, 255);
-
-    // Initialize Bluetooth
-    if (Config.bt_on) {
-        ble_host_config_init();
-    }
 
     ESP_LOGI(TAG, "System initialization complete.");
     ESP_LOGI(TAG, "IP Address: %s", wifi_manager_get_local_ip());
     xTaskCreate(main_task, "MAIN", 1024 * 12, NULL, tskIDLE_PRIORITY + 1, NULL);
-}
+    xTaskCreate(ble_task, "BT", 1024 * 12, NULL, tskIDLE_PRIORITY + 2, NULL);
+}   

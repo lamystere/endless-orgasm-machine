@@ -22,6 +22,10 @@ static const char* CONFIG_FILENAME = "/spiffs/config.json";
 #define WIFI_SSID_MAX_LEN 64
 #define WIFI_KEY_MAX_LEN 64
 
+#define GATTS_SERVICE_EOM_UUID     0x6969
+#define GATTS_CHAR_STATUS_UUID     0x696A
+#define GATTS_CHAR_UPDATE_UUID     0x696B
+
 #define GATTS_SERVICE1_UUID        0x6000
 #define GATTS_OUTPUT1_CHAR_UUID    0x6031
 #define GATTS_OUTPUT2_CHAR_UUID     0x1903
@@ -137,25 +141,25 @@ struct config {
 
     //= Orgasms and Stuff
 
-    // Maximum speed for the motor in auto-ramp mode.
-    uint8_t motor_max_speed;
-    // The minimum speed the motor will start at in automatic mode.
-    uint8_t motor_start_speed;
+    // Maximum pleasure in automatic mode.
+    uint8_t max_pleasure;
+    // The minimum pleasure to start at in automatic mode.
+    uint8_t initial_pleasure;
     // Minimum time (s) after edge detection before resuming stimulation.
-    int edge_delay;
+    uint8_t edge_delay;
     // Maximum time (s) that can be added to the edge delay before resuming stimulation. A random
     // number will be picked between 0 and this setting each cycle. 0 to disable.
-    int max_additional_delay;
+    uint8_t max_additional_delay;
     // Time (s) after stimulation starts before edge detection is resumed.
-    int minimum_on_time;
+    uint8_t minimum_on_time;
     // Number of samples to take an average of. Higher results in lag and lower resolution!
     uint8_t pressure_smoothing;
     // The arousal threshold for orgasm detection. Lower = sooner cutoff.
-    int sensitivity_threshold;
-    // The time it takes for the motor to reach `motor_max_speed` in auto ramp mode.
-    int motor_ramp_time_s;
+    uint16_t sensitivity_threshold;
+    // The time it takes for the motor to reach `max_pleasure` in auto ramp mode.
+    uint8_t motor_ramp_time_s;
     // Update frequency for pressure readings and arousal steps. Higher = crash your serial monitor.
-    int update_frequency_hz;
+    uint8_t update_frequency_hz;
     // Analog pressure prescaling. Adjust this until the pressure is ~60-70%
     uint8_t sensor_sensitivity;
     // Use average values when calculating arousal. This smooths noisy data.
@@ -205,9 +209,6 @@ void config_enqueue_save(long save_at_ms);
 bool get_config_value(const char* option, char* buffer, size_t len);
 bool set_config_value(const char* option, const char* value, bool* require_reboot);
 
-// TODO: These should be calculated values based on HAL, which works everywhere *BUT*
-//       on chart rendering, where we're statically initializing our data array. That
-//       should be dynamic initialization, thank yoooou. (Can be classified?)
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
