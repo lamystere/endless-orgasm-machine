@@ -1,6 +1,14 @@
 # Endless Orgasm Machine - An Automated Orgasm Denial Device for ESP32
 
-Using an inflatable butt plug to detect pressure changes indicative of pelvic floor contractions, this software, and associated hardware, is used to detect when the user is approaching orgasm and control stimulation accordingly. The net result: automated edging and orgasm denial.  
+### It knows...
+What will surprise you most is how accurate it is that you only have a few moments left.  In this day and age algorithms are a respected part of our lives...this one knows you better than yourself.
+
+Have you ever cut-off a sneeze before it happened and found it a conflicting blend of sensations?  Have you ever stopped going before your orgasm so you could last a bit longer?  If you're not afraid to use a buttplug and you're ready for an amazing experience this is for you.  
+
+It is not a sex-toy in the traditional sense because it doesn't provide pleasure unless you add in a vibrator or connect it wirelessly to other toys.  They provide the pleasure, EOM tells them when to stop and when they can start again.
+
+### The science!
+Using an inflatable butt plug to detect pressure changes indicative of pelvic floor contractions, this software, and associated hardware, is used to detect when the user is approaching orgasm and control stimulation accordingly. The net result: automated edging and orgasm denial or enhancement.
 
 ### But I like orgasms...
 
@@ -8,7 +16,7 @@ Having to wait for it while being right at the edge makes it more intense!  Tryi
 
 ![Screenshot](doc/Screenshot.png)
 
-## Setup 
+## Building 
 - Install [VSCode](https://code.visualstudio.com/) with the [PlatformIO](https://platformio.org/) extension
 - Open this repo and let all the PlatformIO dependencies download
 - Configure your wifi ssid and password at the top of [data/config.json](data/config.json) or skip this step to let it broadcast its own access point: ```EOM```.  You can have it both ways: Set it up to connect to your home wifi but if you're away EOM will go into access point mode after it fails to find it.
@@ -19,7 +27,9 @@ Having to wait for it while being right at the edge makes it more intense!  Tryi
 
 ## Web UI
 
-[The UI](eomui/README.md) is hosted on the ESP32 itself and can be found by visiting the ```/ui``` endpoint at the IP address of your device.  You can watch the serial output to determine the IP.
+[The UI](eomui/README.md) is posted at https://lamystere.github.io/endless-orgasm-machine/eomui/public and can be installed on your Android or PC for offline use. 
+
+[The UI](eomui/README.md) is also on the ESP32 itself and can be found by visiting the ```/ui``` endpoint at the IP address of your device.  You can watch the serial output to determine the IP.
 
 Example: If you join the EOM WiFi access point the IP will be: ```192.168.4.1``` you should visit ```http://192.168.4.1/ui```  It will automatically open a connection to the websocket endpoint at ```http://192.168.4.1/```.
 
@@ -27,7 +37,11 @@ Example: If you join the EOM WiFi access point the IP will be: ```192.168.4.1```
 ![Screenshot](doc/Screenshot2.png)
 
 ## bluetooth usage
-WiFi is NOT necessary anymore!  The UI can work through bluetooth now! A website and app are in the works.  At the moment you still need to connect to the /ui endpoint or a local vite server to see the UI and hit the bluetooth connection button.
+WiFi is NOT necessary anymore!  The UI can work through bluetooth now! No ip address, wifi setup, or anything else needed.  Just connect to your EOM directly by clicking the bluetooth icon.  Android or PC Chrome only! Sorry Apple and Firefox enthusiasts but those two have deemed web bluetooth an unacceptable risk and it will never be available.
+
+So how do you get that running? It is now configured as a PWA!  This means you can pull it up once from https://lamystere.github.io/endless-orgasm-machine/eomui/public and install it as an app.  It does not require an internet connection to work after installation...its just there in app mode ready to go.  I'll probably end up splitting the UI into an embedded version and an app version.  
+
+
 
 Using Xtoys you can connect to the EOM and let it control your other Xtoys devices.  For Xtoys it emulates a device called [MonsterPub Mr. Devil Kegel](https://monsterpub.com/products/mp2-u-shaped-remote-egg-with-kegel).  The "pressure" reading corresponds to the "pleasure" output of the EOM.  The sliders for vibrator strength will work in manual mode.
 

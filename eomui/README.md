@@ -1,7 +1,12 @@
 # Endless Orgasm Machine UI
 
-This is a UI for the Endless Orgasm Machine, a DIY-friendly fork of the Endless Orgasm Machine.  It is extremely lightweight, built using Svelte and Vite only, and meant to be stored in spiffs memory on an ESP32.  The prebuilt output is already included with the larger EOM project.  This source is included to encourage tinkering and enhancements from the maker community.
+This is a UI for the Endless Orgasm Machine, a DIY-friendly fork of the Endless Orgasm Machine.  It is extremely lightweight, built using Svelte and Vite only with no dependencies since.  
 
+New as of 11/4/25: It runs over bluetooth!  No ip address, wifi setup, or anything else needed.  Just connect to your EOM directly by clicking the bluetooth icon.  Android or PC Chrome only! Sorry Apple and Firefox enthusiasts but those two have deemed web bluetooth an unacceptable risk and it will never be available.
+
+New as of 11/6/25: It is now configured as a PWA!  This means you can pull it up once from https://lamystere.github.io/endless-orgasm-machine/eomui/public and install it as an app.  It does not require an internet connection to work after installation...its just there in app mode ready to go.
+
+It is meant to be stored in spiffs memory on an ESP32 and the prebuilt output is already included with the larger EOM project.  This source is included to encourage tinkering and enhancements from the maker community.
 
 It can be run locally if you prefer.  It should be backwards compatible with the Edge-o-Matic though missing some features like denial count and Orgasm Mode.
 
