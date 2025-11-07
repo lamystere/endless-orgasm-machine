@@ -83,7 +83,7 @@ void send_config() {
     config_serialize(&Config, config_buffer, sizeof(config_buffer));
     size_t config_length = strlen(config_buffer) - 2; //exclude last brace
     if (send_ind_status && send_chr_conn_handle_inited) {
-        int chunk_size = 512; //not sure why larger values fail
+        int chunk_size = 512; // MTU is configured to 515 bytes (512 payload + 3 overhead)
         int offset = 1; //exclude first brace
         while (offset < config_length) {
             // Find the last line break within the chunk
@@ -106,7 +106,7 @@ void send_config() {
             
             offset += bytes_to_send;
 
-            ESP_LOGI(TAG, "Sending config chunk: %.*s", bytes_to_send, send_chr_val);
+            ESP_LOGE(TAG, "Sending config chunk: %.*s", bytes_to_send, send_chr_val);
 
             // Create mbuf and send notification with custom data
             struct os_mbuf *om = ble_hs_mbuf_from_flat(send_chr_val, bytes_to_send - 2);
@@ -640,6 +640,15 @@ void ble_host_config_init(void) {
     ble_hs_cfg.sync_cb = on_stack_sync;
     ble_hs_cfg.gatts_register_cb = gatt_svr_register_cb;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
+
+    /* Configure MTU to support 512-byte notifications */
+    /* MTU = payload + 3 bytes overhead, so 515 allows 512-byte payload */
+    rc = ble_att_set_preferred_mtu(515);
+    if (rc != 0) {
+        ESP_LOGE(TAG, "failed to set preferred MTU, error code: %d", rc);
+    } else {
+        ESP_LOGI(TAG, "preferred MTU set to 515 bytes");
+    }
 
     /* Store host configuration */
     ble_store_config_init();

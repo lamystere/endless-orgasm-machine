@@ -108,6 +108,8 @@ struct config {
 
     //= UI And Stuff
 
+    // Chart window size in seconds
+    uint8_t chart_window_s;
     // LED Ring max brightness, only for NoGasm+.
     uint8_t led_brightness;
     // Time, in seconds, before the screen dims. 0 to disable.
@@ -142,6 +144,8 @@ struct config {
 
     //= Orgasms and Stuff
 
+    // Maximum number of denials before forcing an orgasm (in orgasm mode).
+    uint8_t max_denied;
     // Maximum pleasure in automatic mode.
     uint8_t max_pleasure;
     // The minimum pleasure to start at in automatic mode.

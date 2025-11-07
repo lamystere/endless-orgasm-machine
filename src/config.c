@@ -38,8 +38,10 @@ CONFIG_DEFS {
     CFG_STRING(hostname, "eom");
 
     // UI Settings
+    CFG_NUMBER(chart_window_s, 5);
 
     // Orgasm Settings
+    CFG_NUMBER(max_denied, 20);
     CFG_NUMBER(max_pleasure, 255);
     CFG_NUMBER(initial_pleasure, 10);
     CFG_NUMBER(edge_delay, 10);

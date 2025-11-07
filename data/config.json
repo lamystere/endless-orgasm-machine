@@ -10,6 +10,8 @@
   "bt_display_name": "Libotoy",
   "bt_on": true,
   "websocket_port": 80,
+  "chart_window_s": 5,
+  "max_denied": 5,
   "max_pleasure": 255,
   "pressure_smoothing": 10,
   "classic_serial": false,

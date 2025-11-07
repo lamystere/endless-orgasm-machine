@@ -67,6 +67,8 @@
     post_orgasm_duration_seconds: settingType;
     use_average_values: settingType;
     use_post_orgasm: settingType;
+    chart_window_s: settingType;
+    max_denied: settingType;
   };
 
   let vibration_modes: Record<number, string> = {
@@ -129,6 +131,14 @@
       type: "%",
       description: "Maximum intensity of pleasure during stimulation.",
     },
+    max_denied: {
+      value: 20,
+      min: 1,
+      max: 100,
+      label: "Maximum Denials",
+      type: "denied orgasms",
+      description: "Maximum number of denials before forcing an orgasm (in orgasm mode). Also changes the scale of the chart line in other modes.",
+    },
     motor_ramp_time_s: {
       value: 10,
       min: 0,
@@ -151,7 +161,7 @@
       max: 60,
       label: "Edge Delay",
       type: "seconds",
-      description: "Minimum time to wait after edge detection before resuming stimulation.",
+      description: "Minimum time to wait after an edge detection before resuming pleasure.",
     },
     max_additional_delay: {
       value: 5,
@@ -159,7 +169,15 @@
       max: 60,
       label: "Max Additional Delay",
       type: "seconds",
-      description: "Maximum time (s) that can be added to the edge delay before resuming stimulation. A random number will be picked between 0 and this setting each cycle. 0 to disable.",
+      description: "A random amount of extra seconds to add to the wait time before resuming after an edge detection.",
+    },
+    chart_window_s: {
+      value: 5,
+      min: 0,
+      max: 600,
+      label: "Chart Window",
+      type: "seconds",
+      description: "The number of seconds to display in the chart history.  Higher numbers can cause sluggish behavior on slower devices.",
     },
     minimum_on_time: {
       value: 5,
@@ -198,7 +216,7 @@
       min: 0,
       max: 4096,
       label: "Clench Pressure Sensitivity",
-      type: "",
+      type: "%",
       description: "Minimum additional Arousal level to detect clench",
     },
     clench_time_to_orgasm_ms: {
@@ -216,14 +234,6 @@
       label: "Clench Time Threshold (ms)",
       type: "ms",
       description: "Threshold variable that is milliseconds counts to detect the start of clench.",
-    },
-    clench_detector_in_edging: {
-      value: 1,
-      min: 0,
-      max: 1,
-      label: "Clench Detector in Edging",
-      type: "bool",
-      description: "Enable clench detection while in edging mode.",
     },
     max_clench_duration_ms: {
       value: 20000,
@@ -249,12 +259,20 @@
       type: "seconds",
       description: "How long to stimulate after orgasm detected.",
     },
+    clench_detector_in_edging: {
+      value: 1,
+      min: 0,
+      max: 1,
+      label: "Clench Detector in Edging",
+      type: "yes/no",
+      description: "Enable clench detection while in edging mode.",
+    },
     use_post_orgasm: { 
       value: 1, 
       min: 0, 
       max: 1, 
       label: "Use Post Orgasm",
-      type: "bool",
+      type: "yes/no",
       description: "Use post-orgasm torture mode and functionality.",
     },
     use_average_values: {
@@ -262,7 +280,7 @@
       min: 0,
       max: 1,
       label: "Use Average Values",
-      type: "bool",
+      type: "yes/no",
       description: "Use average values when calculating arousal. This smooths noisy data.",
     },
   } as eomSettings);
@@ -271,13 +289,15 @@
     "sensitivity_threshold",
     "motor_ramp_time_s",
     "edge_delay",
+    "chart_window_s",
   ];
   
   let modalSettings: string[] = [
+    "max_additional_delay",
     "max_pleasure",
     "initial_pleasure",
     "sensor_sensitivity",
-    "max_additional_delay",
+    "max_denied",
     "minimum_on_time",
     "pressure_smoothing",
     "update_frequency_hz",
@@ -323,7 +343,6 @@
   };
 
   let bgt: number = $state(0) as number;
-  let chartTime = $state(5) as number;
   let chartCanvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
   let frameFlashDelay: number = 5; //frames between background color toggles when aroused/on cooldown
@@ -528,10 +547,6 @@
     }
   }
 
-  function handleChartTimeChange() {
-    console.log(`Chart time changed: ${chartTime}`);
-    updateChart();
-  }
 
   function handleUpdated(e: CustomEvent<number[]>) {
     updateChart();
@@ -590,8 +605,8 @@
       //currentPleasure = getNumericValue(wsMsg, "pleasure");
       while (
         readings.length > 0 &&
-          ((wsMsg.millis - (readings[0].millis ?? 0) > chartTime * 1000) ||  //the first and last reading are more than chartTime seconds apart
-          (Date.now() - (readings[0].localTime ?? 0) > chartTime * 1000))  //the first reading is older than chartTime seconds
+          ((wsMsg.millis - (readings[0].millis ?? 0) > settings.chart_window_s.value * 1000) ||  //the first and last reading are more than chartWindow seconds apart
+          (Date.now() - (readings[0].localTime ?? 0) > settings.chart_window_s.value * 1000))  //the first reading is older than chartWindow seconds
       ) {
         readings.shift();
       }
@@ -672,7 +687,12 @@
         btData = new Uint8Array([0x01,currentMode, 0, 0, Number(currentPleasure)]);
       } else {
         //pleasure amount is optional at end of byte array
-        btData = new Uint8Array([0x01,currentMode, setting_name == "triggerArousal" ? 1 : 0, setting_name == "resetDenial" ? 1 : 0]);
+        btData = new Uint8Array([
+          0x01,
+          currentMode, 
+          setting_name == "triggerArousal" ? 1 : 0, 
+          setting_name == "resetDenied" ? 1 : 0
+        ]);
       }
       console.log(`sending ${setting_name} change via Bluetooth:`, btData);
       mainSend.writeValue(btData).then(() => {
@@ -738,7 +758,8 @@
     //initializeWebSocket(socket);
 
     setInterval(() => {
-      if (!$state.snapshot(isWsConnected) && !$state.snapshot(isBtConnected)) {
+      console.log($state.snapshot(isWsConnected),isWsConnected,$state.snapshot(isBtConnected),isBtConnected);
+      if (!(isWsConnected || isBtConnected)) {
         console.log("Not connected");
         return;
       }
@@ -777,6 +798,9 @@
       });
     }
   }
+
+  const bt = (navigator as any).bluetooth; 
+
 </script>
 
 {#snippet InputSlider(id: string)}
@@ -789,9 +813,13 @@
               settings[id as keyof typeof settings].max) *
               100,
           ).toString() + " %"
-        : settings[id as keyof typeof settings].value.toString() +
+        : (settings[id as keyof typeof settings].type === "yes/no" ?
+          (settings[id as keyof typeof settings].value ? "Yes" : "No")
+        :
+        (settings[id as keyof typeof settings].value.toString() +
           " " +
-          settings[id as keyof typeof settings].type}
+          settings[id as keyof typeof settings].type))
+      }
     </label>
     <input
       {id}
@@ -824,28 +852,23 @@
           id="url"
           type="text"
           bind:value={wssUrl}
-          style="margin-bottom: .5%;"
+          style="margin-bottom: .5%; max-width: 8vw;"
           onkeyup={(event) => {if (event.key === 'Enter') { handleConnect(); }}}
         /><input
           type="button"
-          value="Connect"
+          style={isWsConnected ? "background-color: #3aada1; border-color: #0a9d91;" : "background-color: #3a6dc1; border-color: #0a3d91;"}
+          value={isWsConnected ? "Connected" : "Connect"}
           onclick={() => {
             handleConnect();
           }}
         />
-        {#if isWsConnected}
-        <span style="color: green; font-size: small;"> ● Connected</span>
-        {:else}
-        <span style="color: red; font-size: small;"> ● Disconnected</span>
-        {/if}
       </div>  
 
       <div style="white-space: nowrap; display: flex; align-items: center;">
         <button
           onclick={() => {
-            const bt = (navigator as any).bluetooth; 
             if (!bt) {
-              console.error('Web bluetooth is not available on iOS devices or Firefox.');
+              alert('Web bluetooth is not available on iOS devices or Firefox.');
               return;
             }
             if (isBtConnected) {
@@ -865,7 +888,7 @@
                   btDevice = device;
                   device.gatt.connect()
                     .then((server: any) => {
-                      console.log('Connected to GATT server:', server);
+                      console.log('Connected to GATT server:', server);                      
                       server.getPrimaryService(0x6969).then((service: any) => {
                         console.log('Got primary service:', service);
 
@@ -893,11 +916,12 @@
                             };
                             readings.push(newReading);
                             while (
-                              readings.length > 0 && (Date.now() - (readings[0].localTime ?? 0) > chartTime * 1000)  
+                              readings.length > 0 && (Date.now() - (readings[0].localTime ?? 0) > settings.chart_window_s.value * 1000)  
                             ) {
                               //the first reading is older than chartTime seconds
                               readings.shift();
                             }
+                            currentPleasure = Number(newReading.pleasure);
                             chartCanvas?.dispatchEvent(new CustomEvent("updated", {}));
 
                           });
@@ -926,7 +950,8 @@
 
                           characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
                             const value = event.target.value;
-                            const data = new Uint8Array(value.buffer);
+                            // Create Uint8Array from the DataView with proper length
+                            const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
                             
                             // Find the actual length by looking for null terminator
                             let actualLength = data.length;
@@ -939,10 +964,10 @@
                             
                             // Convert Uint8Array to string and parse as JSON
                             const decoder = new TextDecoder();
-                            const jsonString = "{" + decoder.decode(data.slice(0, actualLength)) + "}";
+                            const jsonString = '{' + decoder.decode(data.slice(0, actualLength)) + '}';
 
                             try {
-                              console.log('Received config data:', jsonString);
+                              console.log('Received config data:', jsonString, value);
                               const configObj = JSON.parse(jsonString);
                               for (const [key, val] of Object.entries(configObj)) {
                                 if (key in settings) {
@@ -977,18 +1002,14 @@
             }
 
           }}
-          style="cursor: pointer; margin: .2%;padding-bottom: 0;"
+          class="btButton"
+          style={bt ? (isBtConnected ? "background-color: #3aada1; border-color: #0a9d91;" : "background-color: #3a6dc1; border-color: #0a3d91;") : "background-color: darkred; border-color: darkred;"}
           aria-label="Connect via bluetooth" 
           ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 976" width="23" height="20" aria-label="Bluetooth">
-              <rect ry="291" height="976" width="640" fill="#0a3d91"/>
+              <rect ry="291" height="976" width="640" fill="#0a3d91" />
                 <path d="m157 330 305 307-147 178V179l147 170-305 299" stroke="#FFF" stroke-width="53" fill="none"/>
               </svg>
         </button>
-        {#if isBtConnected}
-          <span style="color: green; font-size: small;"> ● Connected</span>
-        {:else}
-          <span style="color: red; font-size: small;"> ● Disconnected</span>
-        {/if}
       </div>
 
       <button
@@ -1120,53 +1141,45 @@
     </div>
 
 
-
-    {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode === 'MANUAL'}
-    <label for="pleasure" style="color:orange">Pleasure: {Math.round(
-              (lastNumericValue($state.snapshot(readings), "pleasure") / maxY) *
-                99,
-            )} %</label>
-    <input
-      id="currentPleasure"
-      type="range"
-      min="0"
-      max={settings.max_pleasure.value}
-      step="1"
-      bind:value={currentPleasure}
-      style="width: 100%;accent-color: orange; background: linear-gradient(to right, orange 0%, orange 100%);"
-      oninput={() => {
-          //console.log("Dragging pleasure to ", currentPleasure);
-          debouncedBasicChange("setMotor",currentPleasure )
-          //handleBasicChange("setMotor",currentPleasure )
+    <div class="settingSliders">
+      {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode === 'MANUAL'}
+      <label for="pleasure" style="color:orange">Pleasure: {Math.floor(
+                (lastNumericValue($state.snapshot(readings), "pleasure") / maxY) *
+                  100,
+              )} %</label>
+      <input
+        id="currentPleasure"
+        type="range"
+        min="0"
+        max={settings.max_pleasure.value}
+        step="1"
+        bind:value={currentPleasure}
+        style="width: 100%;accent-color: orange; background: linear-gradient(to right, orange 0%, orange 100%);"
+        oninput={() => {
+            //console.log("Dragging pleasure to ", currentPleasure);
+            debouncedBasicChange("setMotor",currentPleasure )
+            //handleBasicChange("setMotor",currentPleasure )
+          }
         }
-      }
-    />
-    {/if}
+      />
+      {/if}
+      
+    
+      {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode === 'ORGASM'}
+        {@render InputSlider("auto_edging_duration_minutes")}
+        {@render InputSlider("max_denied")}
+      {/if}
 
-    {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode === 'ORGASM'}
-      {@render InputSlider("auto_edging_duration_minutes")}
-    {/if}
-
-    {#each mainSettings as settingId}
-      {@render InputSlider(settingId)}
-    {/each}
-
-    <label for="chartTime">Time Window of Chart: {chartTime} seconds</label>
-    <input
-      id="chartTime"
-      type="range"
-      min="1"
-      max="60"
-      step="1"
-      bind:value={chartTime}
-      style="width: 100%;"
-      onchange={handleChartTimeChange}
-    />
+      {#each mainSettings as settingId}
+        {@render InputSlider(settingId)}
+      {/each}
+    </div> 
   </div>
 </div>
 
 <dialog
-  style="position: absolute; top: 10%; width: 80%; margin: auto;padding: 1em;  vertical-align: top;"
+  class="settingsDialog"
+  style=""
   open={showModal}
   bind:this={dialog}
   onclose={() => (showModal = false)}
@@ -1181,19 +1194,6 @@
     </button>
     <h2>Settings</h2>
     <hr />
-    <label for="chartTime">Maximum Denied Orgasms on Chart: {maxDenied} denied orgasms</label>
-    <input
-      title="This changes how many denied orgasms it takes to reach 100% on its chart line."
-      id="maxDenied"
-      type="range"
-      min="1"
-      max="100"
-      step="1"
-      bind:value={maxDenied}
-      style="width: 100%;"
-      onchange={handleChartTimeChange}
-    />
-
     {#each modalSettings as settingId}
       {@render InputSlider(settingId)}
     {/each}

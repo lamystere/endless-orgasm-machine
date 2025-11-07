@@ -240,6 +240,8 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg) {
     /* MTU update event */
     case BLE_GAP_EVENT_MTU:
         /* Print MTU update info to log */
+        ESP_LOGI(TAG, "MTU negotiated: %d bytes (max payload: %d bytes)",
+                 event->mtu.value, event->mtu.value - 3);
         ESP_LOGD(TAG, "mtu update event; conn_handle=%d cid=%d mtu=%d",
                  event->mtu.conn_handle, event->mtu.channel_id,
                  event->mtu.value);

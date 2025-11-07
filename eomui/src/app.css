@@ -92,6 +92,21 @@ h2 {
   border: 1px solid #333;
 }
 
+.settingsDialog {
+  padding: 1em;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background-color: #333;
+  max-width: 1000px;
+  position: absolute; 
+  top: 10%; 
+  width: 80%; 
+  margin: auto; 
+  padding: 1em;  
+  vertical-align: top;
+}
+
+
 .statBoxes {
   margin-top: .1em;
   display: flex;
@@ -102,6 +117,18 @@ h2 {
 #auto_edging_duration_minutes {
   accent-color: red; 
   background: linear-gradient(to right, red 0%, red 100%);
+}
+
+.settingSliders #max_denied {
+  accent-color: red; 
+  background: linear-gradient(to right, red 0%, red 100%);
+}
+
+.btButton {
+  cursor: pointer;
+  margin: .2%;
+  padding-bottom: 0;
+  border-radius: 5px;
 }
 
 @media screen and (max-width: 800px) {

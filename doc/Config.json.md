@@ -17,6 +17,8 @@ Here is a quick summary of config variables:
 |`websocket_port`|Int|80|Port to listen for incoming Websocket connections.|
 |`use_ssl`|Boolean|true|Enable SSL server, which is a bit annoying to accept unsigned certificates but required for xtoys compatibility|
 |`hostname`|String|"eom3k"|Local hostname for your device.|
+|`chart_window_s`|Int|5|The number of seconds to display in the chart history.  Higher numbers can cause sluggish behavior on slower devices|
+|`max_denied`|Int|20|Maximum number of denials before forcing an orgasm (in orgasm mode).|
 |`initial_pleasure`|Byte|10|The minimum speed the motor will start at in automatic mode.|
 |`max_pleasure`|Byte|255|Maximum speed for the motor in auto-ramp mode.|
 |`motor_ramp_time_s`|Int|30|The time it takes for the motor to reach Motor Max Speed in automatic mode.|

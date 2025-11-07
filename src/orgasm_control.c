@@ -561,6 +561,9 @@ void orgasm_control_set_output_mode(orgasm_output_mode_t mode) {
     output_state.control_motor = mode != OC_MANUAL;
     output_state.motor_stop_time = 0;
     post_orgasm_state.auto_edging_start_millis = (esp_timer_get_time() / 1000UL);
+    if (mode == OC_ORGASM) {
+        orgasm_state.orgasm_count = 0;
+    }
 
     if (old == OC_MANUAL) {
         const vibration_mode_controller_t* controller = get_vibration_mode_controller();
@@ -592,8 +595,10 @@ void orgasm_control_permit_orgasm(int seconds) {
 
 oc_bool_t orgasm_control_is_permit_orgasm_reached() {
     // Detect if edging time has passed
-    if ((esp_timer_get_time() / 1000UL) > (post_orgasm_state.auto_edging_start_millis +
-                                           (Config.auto_edging_duration_minutes * 60 * 1000))) {
+    if (((esp_timer_get_time() / 1000UL) > 
+        (post_orgasm_state.auto_edging_start_millis + (Config.auto_edging_duration_minutes * 60 * 1000))) ||
+        orgasm_state.orgasm_count > Config.max_denied
+    ) {
         return ocTRUE;
     } else {
         return ocFALSE;
@@ -615,10 +620,7 @@ uint8_t orgasm_control_get_permit_orgasm_remaining_minutes() {
     if (output_state.output_mode != OC_ORGASM || orgasm_control_is_permit_orgasm_reached()) {
         return 0;
     } else {
-        long remaining_ms = (post_orgasm_state.auto_edging_start_millis +
-                             (Config.auto_edging_duration_minutes * 60 * 1000)) -
-                            (esp_timer_get_time() / 1000UL);
-        return (uint8_t)ceil(remaining_ms / 60000.0);
+        return (uint8_t)ceil(orgasm_control_get_permit_orgasm_remaining_seconds() / 60.0f);
     }
 }
 
