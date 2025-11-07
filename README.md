@@ -92,28 +92,29 @@ This project was first vastly simplified then expanded with compatibility in min
 
 
 ### To-do priority
-- pinouts and schematics for suggested hardware
 - do canvas drawing to offscreen element for efficiency
 - finish integrated screen support / ip display
-- Is rampstop incrementing ok?
 - Is pressure multiplier working as intended?
-- Doesn't handle more than 4 clients.  Need to aggresively drop stale websocket connections
-- ui and websockets using same endpoint if possible
 - Put some effort into UI styling
 - LED and encoder options? (Blink until connected)
 - Running average math seems off
-- Restore ability to connect directly to Lovense vibes, etc.. maybe from GUI
+- ability to connect directly to Lovense vibes, etc. from GUI
 - Implement patterns?  That's a biggie
+- ui and websockets using same endpoint if possible
 - add X axis on chart (seconds)
 - chart glitch on left side at startup
 - make motor pin selection more intuitive
-- add build walkthrough to docs and more examples
+- add build walkthrough to docs and more examples, pinouts and schematics
 - disable internal motor control option?
+- browscap to hide wss or bluetooth
+- config button offscreen in phone view
+- start with realtime view, chart optional
 
 ### Notable differences from Edge-o-matic
 - Not tied to specific hardware!
+- Runs over bluetooth
 - Orgasm mode available over UI! (denies orgasms until timer runs out)
-- UI hosted on device and is phone friendly
+- UI hosted as PWA and on device... and is phone friendly
 - communicates with Xtoys via BLE
 - defaults to automatic orgasm denial in ramp-stop mode
 - smaller build size
