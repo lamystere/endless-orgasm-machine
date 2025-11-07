@@ -14,6 +14,7 @@ serials.yml
 .vs/
 .idea/
 node_modules/
+.local/ 
 
 ~*
 .pio

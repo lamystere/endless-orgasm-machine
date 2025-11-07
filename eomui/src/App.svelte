@@ -9,7 +9,12 @@
       .toString()
       .replace("/ui","/")
       .replace(/http(s?):\/\//, isSSL ? "wss://" : "ws://")
-      .replace("localhost:5173", "192.168.4.1"), //If not in AP mode update to match your EOM's IP address...useful for local testing
+      .replace(/^(wss?:\/\/)[^\/:]+(:\d+)?(\/.*)?$/, (match, protocol, port, path) => {
+        const host = match.replace(protocol, '').replace(port || '', '').replace(path || '', '');
+        const isIP = /^\d+\.\d+\.\d+\.\d+$/.test(host);
+        return protocol + (isIP ? host : "192.168.4.1");  //replace with your local ip for dev convenience
+      }), 
+      //If not in AP mode update to match your EOM's IP address...useful for local testing
   ) as string;
   if ((window.location.toString().match(/\.\d+\/?$/) ?? []).length > 0) {
     window.location.replace(window.location.toString() + "ws");
@@ -629,8 +634,8 @@
   }
 
   function handleSettingChange(setting_name: string, value: number) {
+    settings[setting_name as keyof typeof settings].value = value;
     if (isWsConnected) {
-      settings[setting_name as keyof typeof settings].value = value;
       let msg = JSON.stringify({
         configSet: { [setting_name]: value },
       });
@@ -760,6 +765,18 @@
     console.log(`Device ${device.name} is disconnected.`);
     isBtConnected = false;
   }
+
+  function sendConfigRequest() {
+    if (isBtConnected && mainSend != null) {
+      mainSend.writeValue(
+        new Uint8Array([0x03]) // Command identifier for config request
+      ).then(() => {
+        console.log('Sent configuration request via Bluetooth.');
+      }).catch((error: any) => {
+        console.error('Error sending configuration request via Bluetooth:', error);
+      });
+    }
+  }
 </script>
 
 {#snippet InputSlider(id: string)}
@@ -831,84 +848,134 @@
               console.error('Web bluetooth is not available on iOS devices or Firefox.');
               return;
             }
-            bt.requestDevice({
-              optionalServices: [0x6969, 0x696A, 0x696B],
-              filters: [{
-                namePrefix: 'Libotoy',
-              }]
-            })
-              .then((device: any) => {
-                console.log('Connecting to device:', device);
-                device.addEventListener('gattserverdisconnected', onDisconnected);
-                btDevice = device;
-                device.gatt.connect()
-                  .then((server: any) => {
-                    console.log('Connected to GATT server:', server);
-                    server.getPrimaryService(0x6969).then((service: any) => {
-                      console.log('Got primary service:', service);
-                      //readings
-                      service.getCharacteristic(0x696a).then((characteristic: any) => {
-                        console.log('Got characteristic:', characteristic);
+            if (isBtConnected) {
+              console.log('Disconnecting from Bluetooth device:', btDevice);
+              btDevice?.gatt.disconnect();
+              isBtConnected = false;
+            } else {
+              bt.requestDevice({
+                optionalServices: [0x6969, 0x696A, 0x696B],
+                filters: [{
+                  namePrefix: 'Libotoy',
+                }]
+              })
+                .then((device: any) => {
+                  console.log('Connecting to device:', device);
+                  device.addEventListener('gattserverdisconnected', onDisconnected);
+                  btDevice = device;
+                  device.gatt.connect()
+                    .then((server: any) => {
+                      console.log('Connected to GATT server:', server);
+                      server.getPrimaryService(0x6969).then((service: any) => {
+                        console.log('Got primary service:', service);
 
-                        characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
-                          const value = event.target.value;
-                          // Assuming the value is a Uint8Array
-                          const data = new Uint8Array(value.buffer);
-                          console.log('Received data:', data);
-                          // Process the received data as needed
+                        //readings
+                        service.getCharacteristic(0x696a).then((characteristic: any) => {
+                          console.log('Got characteristic:', characteristic);
+
+                          characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
+                            const value = event.target.value;
+                            const data = new Uint8Array(value.buffer);
+                            //console.log('Received data:', data);
                             let newReading: eomReading = {
-                            pressure: data[0]* 16, // scale to 0-4096
-                            arousal: data[1] * 16, // scale to 0-4096
-                            threshold: data[2]* 16, // scale to 0-4096
-                            motor: data[3],
-                            pleasure: data[3],
-                            cooldown: data[4],
-                            denied: data[5],
-                            runMode: runModes[data[6]] ?? "AUTOMATIC",
-                            pleasureMode: data[7],
-                            permit: data[8] * 255 + (data[9] ?? 0),
-                            millis: Date.now(),
-                            localTime: Date.now(),
-                          };
-                          readings.push(newReading);
-                          while (
-                            readings.length > 0 && (Date.now() - (readings[0].localTime ?? 0) > chartTime * 1000)  
-                          ) {
-                            //the first reading is older than chartTime seconds
-                            readings.shift();
-                          }
-                          chartCanvas?.dispatchEvent(new CustomEvent("updated", {}));
+                              pressure: data[0]* 16, // scale to 0-4096
+                              arousal: data[1] * 16, // scale to 0-4096
+                              threshold: data[2]* 16, // scale to 0-4096
+                              motor: data[3],
+                              pleasure: data[3],
+                              cooldown: data[4],
+                              denied: data[5],
+                              runMode: runModes[data[6]] ?? "AUTOMATIC",
+                              pleasureMode: data[7],
+                              permit: data[8] * 255 + (data[9] ?? 0),
+                              millis: Date.now(),
+                              localTime: Date.now(),
+                            };
+                            readings.push(newReading);
+                            while (
+                              readings.length > 0 && (Date.now() - (readings[0].localTime ?? 0) > chartTime * 1000)  
+                            ) {
+                              //the first reading is older than chartTime seconds
+                              readings.shift();
+                            }
+                            chartCanvas?.dispatchEvent(new CustomEvent("updated", {}));
+
+                          });
+
+                          characteristic.startNotifications().then(() => {
+                            console.log('Notifications started for characteristic:', characteristic.uuid);
+                            socket?.close();
+                            isWsConnected = false;
+                            isBtConnected = true;
+                          });
 
                         });
 
-                        characteristic.startNotifications().then(() => {
-                          console.log('Notifications started for characteristic:', characteristic.uuid);
-                          socket?.close();
-                          isWsConnected = false;
-                          isBtConnected = true;
+
+
+                        //controls
+                        service.getCharacteristic(0x696b).then((characteristic: any) => {
+                          console.log('Got control characteristic:', characteristic);
+                          mainSend = characteristic;
+                          console.log('Ready to send control commands via Bluetooth.',mainSend);
                         });
 
-                      });
+                        //config
+                        service.getCharacteristic(0x696c).then((characteristic: any) => {
+                          console.log('Got characteristic:', characteristic);
 
-                      //controls
-                      service.getCharacteristic(0x696b).then((characteristic: any) => {
-                        console.log('Got control characteristic:', characteristic);
-                        mainSend = characteristic;
-                        console.log('Ready to send control commands via Bluetooth.',mainSend);
-                      });
+                          characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
+                            const value = event.target.value;
+                            const data = new Uint8Array(value.buffer);
+                            
+                            // Find the actual length by looking for null terminator
+                            let actualLength = data.length;
+                            for (let i = 0; i < data.length; i++) {
+                              if (data[i] === 0) {
+                                actualLength = i;
+                                break;
+                              }
+                            }
+                            
+                            // Convert Uint8Array to string and parse as JSON
+                            const decoder = new TextDecoder();
+                            const jsonString = "{" + decoder.decode(data.slice(0, actualLength)) + "}";
 
+                            try {
+                              console.log('Received config data:', jsonString);
+                              const configObj = JSON.parse(jsonString);
+                              for (const [key, val] of Object.entries(configObj)) {
+                                if (key in settings) {
+                                  settings[key as keyof typeof settings].value = val as number;
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error parsing config JSON:', error, jsonString);
+                            }
+                          });
+
+                          characteristic.startNotifications().then(() => {
+                            console.log('Notifications started for characteristic:', characteristic.uuid);
+                            sendConfigRequest();
+                          });
+
+                        });
+
+
+                      })
+                      .catch((error: any) => {
+                        console.error('Error getting primary service:', error);
+                      });
                     })
                     .catch((error: any) => {
-                      console.error('Error getting primary service:', error);
+                      console.error('Error connecting to GATT server:', error);
                     });
-                  })
-                  .catch((error: any) => {
-                    console.error('Error connecting to GATT server:', error);
-                  });
-              })
-              .catch((error: any) => {
-                console.error(error);
-              });
+                })
+                .catch((error: any) => {
+                  console.error(error);
+                });
+            }
+
           }}
           style="cursor: pointer; margin: .2%;padding-bottom: 0;"
           aria-label="Connect via bluetooth" 

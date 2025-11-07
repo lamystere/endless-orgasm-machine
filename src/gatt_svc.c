@@ -2,7 +2,6 @@
 #include "gatt_svc.h"
 #include "nimble/nimble_port.h"
 #include "nimble/ble.h"
-
 #include "host/ble_hs.h"
 #include "host/ble_uuid.h"
 #include "host/util/util.h"
@@ -14,28 +13,26 @@
 #include "config.h"
 #include "orgasm_control.h"
 #include <cJSON.h>
-//#include "common_inc.h"
-//#include "heart_rate.h"
-//#include "led.h"
-static const char* TAG = "ble_gatts";
+#include "config_defs.h"
 
-/* Library function declarations */
+static const char* TAG = "gatts";
+
 void ble_store_config_init(void);
 
-/* Private function declarations */
 static void on_stack_reset(int reason);
 static void on_stack_sync(void);
-//static void nimble_host_config_init(void);
 static void nimble_host_task(void *param);
 
 static int status_out_chr_access    (uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
 static int update_main_chr_access   (uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
+static int send_chr_access          (uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
 static int output1_chr_access       (uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
 static int input1_chr_access        (uint16_t conn_handle, uint16_t attr_handle,struct ble_gatt_access_ctxt *ctxt, void *arg);
 
 
 /* EOM service */
 static const ble_uuid16_t status_svc_uuid = BLE_UUID16_INIT(GATTS_SERVICE_EOM_UUID); 
+
 static uint8_t status_chr_val[9] = {0};
 static uint16_t status_chr_val_handle;
 static const ble_uuid16_t status_chr_uuid = BLE_UUID16_INIT(GATTS_CHAR_STATUS_UUID); //EOM status
@@ -45,6 +42,13 @@ static bool status_ind_status = false;
 
 static uint16_t update_main_chr_val_handle;
 static const ble_uuid16_t update_main_chr_uuid = BLE_UUID16_INIT(GATTS_CHAR_UPDATE_UUID); //EOM input
+
+static uint8_t send_chr_val[512] = {0};
+static uint16_t send_chr_val_handle;
+static const ble_uuid16_t send_chr_uuid = BLE_UUID16_INIT(GATTS_CHAR_CONFIG_UUID); //EOM config dumps
+static uint16_t send_chr_conn_handle = 0;
+static bool send_chr_conn_handle_inited = false;
+static bool send_ind_status = false;
 /* End EOM service */
 
   
@@ -62,6 +66,65 @@ static uint16_t input1_chr_val_handle;
 static const ble_uuid16_t input1_chr_uuid = BLE_UUID16_INIT(GATTS_INPUT1_CHAR_UUID); //mosterpub vibe input
 /* End Monsterpub emulation service */
 
+void send_output1(void) {
+    if (output1_ind_status && output1_chr_conn_handle_inited) {
+        ble_gatts_notify(output1_chr_conn_handle,
+                         output1_chr_val_handle);
+    }
+
+    if (status_ind_status && status_chr_conn_handle_inited) {
+        ble_gatts_notify(status_chr_conn_handle,
+                         status_chr_val_handle);
+    }
+}
+
+void send_config() {
+    char config_buffer[2048];
+    config_serialize(&Config, config_buffer, sizeof(config_buffer));
+    size_t config_length = strlen(config_buffer) - 2; //exclude last brace
+    if (send_ind_status && send_chr_conn_handle_inited) {
+        int chunk_size = 512; //not sure why larger values fail
+        int offset = 1; //exclude first brace
+        while (offset < config_length) {
+            // Find the last line break within the chunk
+            int search_end = (config_length - offset > chunk_size) ? 
+                offset + chunk_size : config_length;
+            int last_newline = -1;
+            for (int i = offset; i < search_end; i++) {
+                if (config_buffer[i] == '\n') {
+                    last_newline = i;
+                }
+            }
+            
+            // Use the last newline position if found, otherwise use chunk_size
+            int bytes_to_send = (last_newline > offset && !(config_length - offset < chunk_size)) ? 
+                (last_newline - offset + 1) : 
+                (config_length - offset > chunk_size ? chunk_size : config_length - offset);
+            
+            memcpy(send_chr_val, &config_buffer[offset], bytes_to_send - 1); //exclude last comma
+            send_chr_val[bytes_to_send - 2] = '\0';  // Null terminate
+            
+            offset += bytes_to_send;
+
+            ESP_LOGI(TAG, "Sending config chunk: %.*s", bytes_to_send, send_chr_val);
+
+            // Create mbuf and send notification with custom data
+            struct os_mbuf *om = ble_hs_mbuf_from_flat(send_chr_val, bytes_to_send - 2);
+            if (om != NULL) {
+                ble_gatts_notify_custom(send_chr_conn_handle, send_chr_val_handle, om);
+            }
+            vTaskDelay(300 / portTICK_PERIOD_MS); // Small delay to allow notifications to be sent
+        }
+    }
+}
+
+static void deferred_send_config_task(void *param) {
+    vTaskDelay(100 / portTICK_PERIOD_MS); // Brief delay to ensure subscription is fully established
+    send_config();
+    vTaskDelete(NULL);
+}
+
+
 /* GATT services table */
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
     {.type = BLE_GATT_SVC_TYPE_PRIMARY,
@@ -78,6 +141,12 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
                 .access_cb = update_main_chr_access,
                 .flags = BLE_GATT_CHR_F_WRITE,
                 .val_handle = &update_main_chr_val_handle
+            },
+            {
+                .uuid = &send_chr_uuid.u,
+                .access_cb = send_chr_access,
+                .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_NOTIFY,
+                .val_handle = &send_chr_val_handle
             },
             
              {
@@ -108,36 +177,20 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
         }
     },
 
-    // /* Automation IO service */
-    // {
-    //     .type = BLE_GATT_SVC_TYPE_PRIMARY,
-    //     .uuid = &auto_io_svc_uuid.u,
-    //     .characteristics =
-    //         (struct ble_gatt_chr_def[]){/* LED characteristic */
-    //                                     {.uuid = &input1_chr_uuid.u,
-    //                                      .access_cb = input1_chr_access,
-    //                                      .flags = BLE_GATT_CHR_F_WRITE,
-    //                                      .val_handle = &input1_chr_val_handle},
-    //                                     {0}},
-    // },
-
     {
         0, /* No more services. */
     },
 };
 
-static int status_out_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                                 struct ble_gatt_access_ctxt *ctxt, void *arg) {
+static int status_out_chr_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
     int rc;
     switch (ctxt->op) {
     case BLE_GATT_ACCESS_OP_READ_CHR:
-        // Verify connection handle
         if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
             ESP_LOGD(TAG, "characteristic read; conn_handle=%d attr_handle=%d", conn_handle, attr_handle);
         } else {
             ESP_LOGD(TAG, "characteristic read by nimble stack; attr_handle=%d", attr_handle);
         }
-
         if (attr_handle == status_chr_val_handle) {
             
             uint16_t permit_seconds = orgasm_control_get_permit_orgasm_remaining_seconds();
@@ -158,12 +211,9 @@ static int status_out_chr_access(uint16_t conn_handle, uint16_t attr_handle,
             return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
         }
         goto error;
-
-    /* Unknown event */
     default:
         goto error;
     }
-
 error:
     ESP_LOGE(
         TAG,
@@ -172,27 +222,18 @@ error:
     return BLE_ATT_ERR_UNLIKELY;
 }
 
-static int update_main_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                          struct ble_gatt_access_ctxt *ctxt, void *arg) {
-    /* Local variables */
+
+
+static int update_main_chr_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
     int rc;
-
-    /* Handle access events */
-    /* Note: LED characteristic is write only */
     switch (ctxt->op) {
-
-    /* Write characteristic event */
     case BLE_GATT_ACCESS_OP_WRITE_CHR:
-        /* Verify connection handle */
         if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
             ESP_LOGI(TAG, "characteristic write; conn_handle=%d attr_handle=%d",conn_handle, attr_handle);
         } else {
             ESP_LOGI(TAG, "characteristic write by nimble stack; attr_handle=%d", attr_handle);
         }
-
-        /* Verify attribute handle */
         if (attr_handle == update_main_chr_val_handle) {
-            /* Verify access buffer length */
             uint8_t buf[ctxt->om->om_len];
             ESP_LOGE(TAG, "Received data length: %d", ctxt->om->om_len);
             rc = os_mbuf_copydata(ctxt->om, 0, ctxt->om->om_len, buf);
@@ -206,7 +247,6 @@ static int update_main_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                 sprintf(&hex_str[i * 2], "%02x ", buf[i]);
             }
             hex_str[ctxt->om->om_len * 2] = '\0'; // Null terminate
-            
             ESP_LOGE(TAG, "Received data (hex): %s", hex_str);
             
             // Check if buffer contains a ':' character (0x3A)
@@ -221,7 +261,7 @@ static int update_main_chr_access(uint16_t conn_handle, uint16_t attr_handle,
             }
             
             if (buf[0] == 0x01 && ctxt->om->om_len >= 4) {
-                //motor1/both, mode, trigger arousal, reset denied, (optional) motor2
+                //mode, trigger arousal, reset denied, (optional) motor1/pleasure, (optional) motor2
                 uint8_t mode = buf[1];
                 bool trigger_arousal = buf[2] != 0;
                 bool reset_denied = buf[3] != 0;
@@ -246,20 +286,23 @@ static int update_main_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                     eom_hal_set_motor2_speed(motor2);
                 }
             } else if (buf[0] == 0x02 && ctxt->om->om_len >= 2 && has_colon) {
-                char setting_name[colon_pos + 1];  // Changed from const char
-                memcpy(setting_name, &buf[1], colon_pos - 1);  // Skip 0x02 command byte
+                char setting_name[colon_pos + 1];  
+                memcpy(setting_name, &buf[1], colon_pos - 1);  // Skip 0x02 command byte, stop at colon (no quotes)
                 setting_name[colon_pos - 1] = '\0';  // Null terminate
                 
-                char setting_value[ctxt->om->om_len - colon_pos];  // Changed from const char
-                memcpy(setting_value, &buf[colon_pos + 1], ctxt->om->om_len - colon_pos - 1);
+                char setting_value[ctxt->om->om_len - colon_pos];
+                memcpy(setting_value, &buf[colon_pos + 1], ctxt->om->om_len - colon_pos - 1);  //starting after colon
                 setting_value[ctxt->om->om_len - colon_pos - 1] = '\0';  // Null terminate
-                
+
                 ESP_LOGE(TAG, "Setting name: %s, value: %s", setting_name, setting_value);
                 if (set_config_value(setting_name, setting_value, NULL)) {
-                    ESP_LOGE(TAG, "Set config value successfully");
+                    ESP_LOGD(TAG, "Set config value successfully");
                 } else {
-                    ESP_LOGE(TAG, "Failed to set config value");
+                    ESP_LOGD(TAG, "Failed to set config value");
                 }
+            } else if (buf[0] == 0x03) {
+                ESP_LOGE(TAG, "Received config dump request");
+                xTaskCreate(deferred_send_config_task, "SendConfig", 6*1024, NULL, 5, NULL);
             }
             return rc;
         }
@@ -276,6 +319,38 @@ error:
              ctxt->op);
     return BLE_ATT_ERR_UNLIKELY;
 }
+
+
+
+
+static int send_chr_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
+    int rc;
+    switch (ctxt->op) {
+    case BLE_GATT_ACCESS_OP_READ_CHR:
+        if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+            ESP_LOGD(TAG, "characteristic read; conn_handle=%d attr_handle=%d", conn_handle, attr_handle);
+        } else {
+            ESP_LOGD(TAG, "characteristic read by nimble stack; attr_handle=%d", attr_handle);
+        }
+        if (attr_handle == send_chr_val_handle) {
+            //noop!
+            return 0;
+        }
+        goto error;
+
+    /* Unknown event */
+    default:
+        goto error;
+    }
+
+error:
+    ESP_LOGE(
+        TAG,
+        "unexpected access operation to send characteristic, opcode: %d",
+        ctxt->op);
+    return BLE_ATT_ERR_UNLIKELY;
+}
+
 
 
 static int output1_chr_access(uint16_t conn_handle, uint16_t attr_handle,
@@ -385,17 +460,8 @@ error:
     return BLE_ATT_ERR_UNLIKELY;
 }
 
-/* Public functions */
-void send_output1(void) {
-    if (output1_ind_status && output1_chr_conn_handle_inited) {
-        ble_gatts_notify(output1_chr_conn_handle,
-                         output1_chr_val_handle);
-    }
-    if (status_ind_status && status_chr_conn_handle_inited) {
-        ble_gatts_notify(status_chr_conn_handle,
-                         status_chr_val_handle);
-    }
-}
+
+
 
 /*
  *  Handle GATT attribute register events
@@ -441,10 +507,7 @@ void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
     }
 }
 
-/*
- *  GATT server subscribe event callback
- *      1. Update heart rate subscription status
- */
+
 
 void gatt_svr_subscribe_cb(struct ble_gap_event *event) {
     /* Check connection handle */
@@ -467,6 +530,11 @@ void gatt_svr_subscribe_cb(struct ble_gap_event *event) {
         status_chr_conn_handle = event->subscribe.conn_handle;
         status_chr_conn_handle_inited = true;
         status_ind_status = event->subscribe.cur_notify;
+    } else if (event->subscribe.attr_handle == send_chr_val_handle) {
+        /* Update send subscription status */
+        send_chr_conn_handle = event->subscribe.conn_handle;
+        send_chr_conn_handle_inited = true;
+        send_ind_status = event->subscribe.cur_notify;
     } else {
         ESP_LOGW(TAG, "subscribe event for unknown attribute handle: %d", event->subscribe.attr_handle);
     }
@@ -594,7 +662,6 @@ void ble_host_config_init(void) {
 
     /* Start NimBLE host task thread and return */
     xTaskCreate(nimble_host_task, "NimBLE Host", 4*1024, NULL, 5, NULL);
-    //xTaskCreate(output1_task, "Output1", 4*1024, NULL, 5, NULL);
 
 }
 

@@ -12,9 +12,9 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <stdio.h>
- 
-#define DEFAULT_CACERT_PATH "/spiffs/server.crt"
-#define DEFAULT_PRVTKEY_PATH "/spiffs/server.key"
+
+#define DEFAULT_CACERT_PATH "/spiffs/ui/server.crt"
+#define DEFAULT_PRVTKEY_PATH "/spiffs/ui/server.key"
 #define SCRATCH_BUFSIZE  16384
 
 static const char* TAG = "http_server";
@@ -22,20 +22,24 @@ static httpd_handle_t _server = NULL;
 static char* index_html = NULL;
 char scratch[SCRATCH_BUFSIZE];
 struct stat file_stat;
-// extern char *servercert;
-// extern char *prvtkey_pem;
-
-// static int read_ssl_file(const char *custom_path, const char *default_path, char **out_buf) {
-//     char path[CONFIG_PATH_MAX];
-//     sniprintf(path, CONFIG_PATH_MAX, "%s", custom_path ? custom_path : default_path);
-//     int len = fs_read_file(path, out_buf);
-//     return len;
-// }
 
 esp_err_t http_handler(httpd_req_t* req) {
-    const char* filepath = "/spiffs/index.html";
-    stat(filepath, &file_stat);
-    ESP_LOGI(TAG, "Sending file : %s (%ld bytes)...", filepath, file_stat.st_size);
+    char filepath[128];
+    strcpy(filepath, "/spiffs");
+    
+    // If filepath doesn't contain "/ui", append it
+    if (strstr(req->uri, "/ui") == NULL) {
+        strncat(filepath, "/ui", sizeof(filepath) - strlen(filepath) - 1);
+    }
+    strncat(filepath, req->uri, sizeof(filepath) - strlen(filepath) - 1);
+    
+    if ((filepath[strlen(filepath) - 1] == '/')) {
+        strncat(filepath, "index.html", sizeof(filepath) - strlen(filepath) - 1);
+    }
+    if (strchr(filepath, '.') == NULL) {
+        strncat(filepath, "/index.html", sizeof(filepath) - strlen(filepath) - 1);
+    }
+    ESP_LOGI(TAG, "Sending file : %s", filepath);
     httpd_resp_set_type(req, "text/html");
 
     FILE* fd = fopen(filepath, "r");
@@ -71,7 +75,7 @@ esp_err_t http_handler(httpd_req_t* req) {
 }
 
 esp_err_t http_or_websocket_handler(httpd_req_t* req) {
-    //havent figured out how to serve both ws and http on same route yet .. for now start with /ui endpoint.  / endpoint needs to be ws for backwards compatibility
+    //havent figured out how to serve both ws and http on same route yet .. for now start with "/ui" endpoint.  "/"" endpoint needs to be ws for backwards compatibility
 
     //if (req->hdr_fields_len > 0) { // Check for headers to avoid crashing on empty requests
     char dummy[128];
@@ -95,22 +99,29 @@ esp_err_t http_or_websocket_handler(httpd_req_t* req) {
 
 static const httpd_uri_t routes[] = { 
     {
-    .uri = "/",
-    .method = HTTP_GET,
-    .handler = &websocket_handler,
-    .user_ctx = NULL,
-    .is_websocket = true,
-    .handle_ws_control_frames = true,
+        .uri = "/",
+        .method = HTTP_GET,
+        .handler = &websocket_handler,
+        .user_ctx = NULL,
+        .is_websocket = true,
+        .handle_ws_control_frames = true,
     } ,
     {
-    .uri = "/ui",
-    .method = HTTP_GET,
-    .handler = &http_handler,
-    .user_ctx = NULL,
-    .is_websocket = false,
-    .handle_ws_control_frames = false,
-} ,
-
+        .uri = "/ui",
+        .method = HTTP_GET,
+        .handler = &http_handler,
+        .user_ctx = NULL,
+        .is_websocket = false,
+        .handle_ws_control_frames = false,
+    } ,
+    {
+        .uri = "/ui/",
+        .method = HTTP_GET,
+        .handler = &http_handler,
+        .user_ctx = NULL,
+        .is_websocket = false,
+        .handle_ws_control_frames = false,
+    } ,
 };
 
 

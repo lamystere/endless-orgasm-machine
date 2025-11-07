@@ -126,7 +126,7 @@ void config_to_json(cJSON* root, config_t* cfg) {
     _config_defs(CFG_GET, root, cfg, NULL, NULL, NULL, 0, NULL);
 
     // Add version information:
-    cJSON_AddNumberToObject(root, "$version", cfg->_version);
+    //cJSON_AddNumberToObject(root, "$version", cfg->_version ? cfg->_version :0);
 }
 
 static void _validate_config(config_t* cfg) {

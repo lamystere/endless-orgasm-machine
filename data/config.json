@@ -1,7 +1,7 @@
 {
   "wifi_ssid": "your_wifi",
   "wifi_key": "your_password",
-  "wifi_on": true,
+  "wifi_on": false,
   "wifi_ap_mode": false,
   "ap_ssid": "EOM",
   "ap_password": "",
@@ -19,7 +19,7 @@
   "sensor_sensitivity": 32,
   "use_average_values": true,
   "force_bt_coex": true,
-  "use_ssl": false,
+  "use_ssl": true,
   "hostname": "eom",
   "initial_pleasure": 10,
   "edge_delay": 10,
