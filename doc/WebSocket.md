@@ -112,11 +112,11 @@ Sets the current run mode.
 
 |Argument|Type|Description|
 |---|---|---|
-|mode|String|`automatic`, `manual`|
+|mode|String|`orgasm`,`endless`, `manual`|
 
 **Example:**
 ```json
-"setMode": "automatic"
+"setMode": "endless"
 ```
  
 

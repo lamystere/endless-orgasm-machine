@@ -92,23 +92,22 @@ This project was first vastly simplified then expanded with compatibility in min
 
 
 ### To-do priority
+- ability to connect directly to Lovense vibes, etc. from GUI
 - do canvas drawing to offscreen element for efficiency
+- audio buzzer for cooldown!
+- add a config save button so setting changes aren't immediately permanent
 - finish integrated screen support / ip display
 - Is pressure multiplier working as intended?
-- Put some effort into UI styling
-- LED and encoder options? (Blink until connected)
-- Running average math seems off
-- ability to connect directly to Lovense vibes, etc. from GUI
-- Implement patterns?  That's a biggie
+- add build walkthrough to docs and more examples, pinouts and schematics
 - ui and websockets using same endpoint if possible
 - add X axis on chart (seconds)
 - chart glitch on left side at startup
 - make motor pin selection more intuitive
-- add build walkthrough to docs and more examples, pinouts and schematics
+- Put some effort into UI styling
 - disable internal motor control option?
-- browscap to hide wss or bluetooth
-- config button offscreen in phone view
-- start with realtime view, chart optional
+- LED and encoder options? (Blink until connected)
+- Implement patterns?  That's a biggie
+- Running average math seems off
 
 ### Notable differences from Edge-o-matic
 - Not tied to specific hardware!
@@ -116,7 +115,7 @@ This project was first vastly simplified then expanded with compatibility in min
 - Orgasm mode available over UI! (denies orgasms until timer runs out)
 - UI hosted as PWA and on device... and is phone friendly
 - communicates with Xtoys via BLE
-- defaults to automatic orgasm denial in ramp-stop mode
+- defaults to endless orgasm denial in ramp-stop mode
 - smaller build size
 - SD card requirement removed
 - menu system removed

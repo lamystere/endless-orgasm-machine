@@ -146,9 +146,9 @@ struct config {
 
     // Maximum number of denials before forcing an orgasm (in orgasm mode).
     uint8_t max_denied;
-    // Maximum pleasure in automatic mode.
+    // Maximum pleasure in endless & orgasm mode.
     uint8_t max_pleasure;
-    // The minimum pleasure to start at in automatic mode.
+    // The minimum pleasure to start at in endless & orgasm mode.
     uint8_t initial_pleasure;
     // Minimum time (s) after edge detection before resuming stimulation.
     uint8_t edge_delay;

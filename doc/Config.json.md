@@ -19,9 +19,9 @@ Here is a quick summary of config variables:
 |`hostname`|String|"eom3k"|Local hostname for your device.|
 |`chart_window_s`|Int|5|The number of seconds to display in the chart history.  Higher numbers can cause sluggish behavior on slower devices|
 |`max_denied`|Int|20|Maximum number of denials before forcing an orgasm (in orgasm mode).|
-|`initial_pleasure`|Byte|10|The minimum speed the motor will start at in automatic mode.|
+|`initial_pleasure`|Byte|10|The minimum speed the motor will start at in endless & orgasm mode.|
 |`max_pleasure`|Byte|255|Maximum speed for the motor in auto-ramp mode.|
-|`motor_ramp_time_s`|Int|30|The time it takes for the motor to reach Motor Max Speed in automatic mode.|
+|`motor_ramp_time_s`|Int|30|The time it takes for the motor to reach Motor Max Speed in endless & orgasm mode.|
 |`edge_delay`|Int|10|Minimum time (s) after edge detection before resuming stimulation.|
 |`max_additional_delay`|Int|10|Maximum time (s) that can be added to the edge delay before resuming stimulation. A random number will be picked between 0 and this setting each cycle. 0 to disable.|
 |`minimum_on_time`|Int|1|Time (s) after stimulation starts before edge detection is resumed.|

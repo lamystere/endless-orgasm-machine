@@ -47,7 +47,6 @@ uint8_t orgasm_control_get_cooldown(void);
 void orgasm_control_reset_denied(void);
 void orgasm_control_trigger_arousal(void);
 uint16_t orgasm_control_get_permit_orgasm_remaining_seconds(void);
-uint8_t orgasm_control_get_permit_orgasm_remaining_minutes(void);
 void orgasm_control_set_permit_orgasm_remaining_seconds(uint16_t seconds);
 void orgasm_control_set_permit_orgasm_remaining_minutes(uint8_t minutes);
 // Set Controls

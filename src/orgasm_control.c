@@ -13,7 +13,7 @@ static const char* TAG = "orgasm_control";
 
 static const char* orgasm_output_mode_str[] = {
     "MANUAL",
-    "AUTOMATIC",
+    "ENDLESS",
     "ORGASM",
 };
 
@@ -275,7 +275,7 @@ static void orgasm_control_update_pleasure() {
     }
 }
 
-static void orgasm_control_updateEdgingTime() { // Edging+Orgasm timer
+static void orgasm_control_update_edging_time() { // Edging+Orgasm timer
     // Make sure menu_is_locked is turned off in Manual mode
     if (output_state.output_mode == OC_MANUAL) {
         post_orgasm_state.menu_is_locked = ocFALSE;
@@ -283,7 +283,7 @@ static void orgasm_control_updateEdgingTime() { // Edging+Orgasm timer
         return;
     }
 
-    // keep edging start time to current time as long as system is not in Edge-Orgasm mode 2
+    // keep edging start time to current time as long as system is not in Orgasm mode 2
     if (output_state.output_mode != OC_ORGASM) {
         post_orgasm_state.auto_edging_start_millis = (esp_timer_get_time() / 1000UL);
         post_orgasm_state.post_orgasm_start_millis = 0;
@@ -310,9 +310,9 @@ static void orgasm_control_updateEdgingTime() { // Edging+Orgasm timer
             post_orgasm_state.post_orgasm_start_millis =
                 (esp_timer_get_time() / 1000UL); // Start Post orgasm torture timer
             // Lock menu if turned on
-            if (Config.post_orgasm_menu_lock && !post_orgasm_state.menu_is_locked) {
-                post_orgasm_state.menu_is_locked = ocTRUE;
-            }
+            // if (Config.post_orgasm_menu_lock && !post_orgasm_state.menu_is_locked) {
+            //     post_orgasm_state.menu_is_locked = ocTRUE;
+            // }
 
            // eom_hal_set_encoder_rgb(255, 0, 0);
         } else {
@@ -450,7 +450,7 @@ void orgasm_control_tick() {
 
     if (millis - arousal_state.last_update_ms > update_frequency_ms) {
         orgasm_control_update_arousal();
-        orgasm_control_updateEdgingTime();
+        orgasm_control_update_edging_time();
         orgasm_control_update_pleasure();
         arousal_state.last_update_ms = millis;
 
@@ -561,17 +561,18 @@ void orgasm_control_set_output_mode(orgasm_output_mode_t mode) {
     output_state.control_motor = mode != OC_MANUAL;
     output_state.motor_stop_time = 0;
     post_orgasm_state.auto_edging_start_millis = (esp_timer_get_time() / 1000UL);
+    post_orgasm_state.post_orgasm_start_millis = 0;
     if (mode == OC_ORGASM) {
         orgasm_state.orgasm_count = 0;
     }
 
-    if (old == OC_MANUAL) {
-        const vibration_mode_controller_t* controller = get_vibration_mode_controller();
-        //output_state.pleasure = controller->start(); //lets let the pleasure stay at its former value
-    } else if (mode == OC_MANUAL) {
-        const vibration_mode_controller_t* controller = get_vibration_mode_controller();
-        //output_state.pleasure = controller->stop();  //lets let the pleasure stay at its former value
-    }
+    // if (old == OC_MANUAL) {
+    //     const vibration_mode_controller_t* controller = get_vibration_mode_controller();
+    //     //output_state.pleasure = controller->start(); //lets let the pleasure stay at its former value
+    // } else if (mode == OC_MANUAL) {
+    //     const vibration_mode_controller_t* controller = get_vibration_mode_controller();
+    //     //output_state.pleasure = controller->stop();  //lets let the pleasure stay at its former value
+    // }
     //event_manager_dispatch(EVT_MODE_SET, NULL, mode);
 }
 
@@ -594,10 +595,10 @@ void orgasm_control_permit_orgasm(int seconds) {
 }
 
 oc_bool_t orgasm_control_is_permit_orgasm_reached() {
-    // Detect if edging time has passed
-    if (((esp_timer_get_time() / 1000UL) > 
+    // Detect if edging time has passed or the max denied orgasms reached
+    if (orgasm_control_get_output_mode() == OC_ORGASM && (((esp_timer_get_time() / 1000UL) > 
         (post_orgasm_state.auto_edging_start_millis + (Config.auto_edging_duration_minutes * 60 * 1000))) ||
-        orgasm_state.orgasm_count > Config.max_denied
+        (Config.max_denied > 0 && Config.max_denied < 100 && orgasm_state.orgasm_count > Config.max_denied))
     ) {
         return ocTRUE;
     } else {
@@ -613,14 +614,6 @@ uint16_t orgasm_control_get_permit_orgasm_remaining_seconds() {
                              (Config.auto_edging_duration_minutes * 60 * 1000)) -
                             (esp_timer_get_time() / 1000UL);
         return (uint16_t)(remaining_ms / 1000UL);
-    }
-}
-
-uint8_t orgasm_control_get_permit_orgasm_remaining_minutes() {
-    if (output_state.output_mode != OC_ORGASM || orgasm_control_is_permit_orgasm_reached()) {
-        return 0;
-    } else {
-        return (uint8_t)ceil(orgasm_control_get_permit_orgasm_remaining_seconds() / 60.0f);
     }
 }
 

@@ -15,6 +15,7 @@ serials.yml
 .idea/
 node_modules/
 .local/ 
+managed_components/
 
 ~*
 .pio

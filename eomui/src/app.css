@@ -38,22 +38,28 @@ h2 {
 }
 
 .radioBoxes {
-  margin-top: 1em;
+  margin-top: .25em;
   display: flex;
   justify-content: space-evenly;
 }
 .radioBox {
   border: 1px solid gray;
   padding: 0.25em;
+  margin-top: .5em;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   text-wrap: nowrap;
   width: auto;
+  margin-left: 1em;
+  margin-right: 1em;
+  min-width: fit-content;
 }
 .radioBoxItem {
   display: flex;
   align-items: center;
   text-wrap: nowrap;
+  color: white;
   input {
     margin: .25em .25em .25em.75em;
     cursor: pointer;
@@ -65,7 +71,7 @@ h2 {
 
 .radioChosen {
   font-weight: bold;
-  color: red;
+  color: #ff4444;
 }
 
 
@@ -90,6 +96,31 @@ h2 {
   box-sizing: border-box;
   padding-top: 0px;
   border: 1px solid #333;
+}
+
+.gauges {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gaugeRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.statusText {
+  margin-top: .5em;
+  font-weight: bold;
+  font-size: 1.2em;
+  text-align: center;
+      color: #ff4444;
+
+}
+.statusTextColor {
 }
 
 .settingsDialog {
@@ -119,16 +150,42 @@ h2 {
   background: linear-gradient(to right, red 0%, red 100%);
 }
 
+.settingSliders {
+  margin-top: 2em;
+  width: 80vw;
+  display: flex;
+  flex-direction: column;
+  gap: .5em; 
+  justify-content: center;
+}
+
+
 .settingSliders #max_denied {
   accent-color: red; 
   background: linear-gradient(to right, red 0%, red 100%);
 }
 
-.btButton {
+.topButton {
   cursor: pointer;
   margin: .2%;
   padding-bottom: 0;
   border-radius: 5px;
+}
+
+.circular-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 25vw;
+}
+.circular-progress svg {
+  width: 20vw;
+  height: 20vw;
+}
+
+.belowCircleButton {
+  border-radius: 8px; height: 2rem; color: black; font-weight: bold; cursor: pointer; margin-top: .75rem;
 }
 
 @media screen and (max-width: 800px) {
@@ -146,4 +203,120 @@ h2 {
   .statBoxButton {
     font-size: 0.5em;
   }
+  .gauges {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .gaugeRow {
+    width: 100vw;
+  }
+  
+  .circular-progress {
+    max-width: 50vw;
+  }
+  .circular-progress svg {
+    width: 40vw;
+    height: 40vw;
+  }
+
 }
+
+  @keyframes flashRedPink {
+    0%, 100% { stroke: red; }
+    50% { stroke: #FF6666; }
+  }
+  
+  @keyframes flashRedPinkText {
+    0%, 100% { fill: red; color: red;}
+    50% { fill: #FF6666; color: #FF6666; }
+  }
+  
+  @keyframes flashOrangeYellow {
+    0%, 100% { stroke: orange; }
+    50% { stroke: yellow; }
+  }
+  
+  @keyframes flashOrangeYellowText {
+    0%, 100% { fill: orange; }
+    50% { fill: yellow; }
+  }
+  
+  @keyframes flashPinkWhite {
+    0%, 100% { stroke: #FF7FFF; }
+    50% { stroke: #FFB3FF; }
+  }
+  
+  @keyframes flashPinkWhiteText {
+    0%, 100% { fill: #FF7FFF; }
+    50% { fill: #FFB3FF; }
+  }
+  
+  .cooldown-flash-stroke {
+    animation: flashRedPink 0.5s infinite;
+  }
+  
+  .cooldown-flash-text {
+    animation: flashRedPinkText 0.5s infinite;
+  }
+  
+  .cooldown-flash-stroke-orange {
+    animation: flashOrangeYellow 0.5s infinite;
+  }
+  
+  .cooldown-flash-text-orange {
+    animation: flashOrangeYellowText 0.5s infinite;
+  }
+  
+  .cooldown-flash-stroke-pink {
+    animation: flashPinkWhite 0.5s infinite;
+  }
+  
+  .cooldown-flash-text-pink {
+    animation: flashPinkWhiteText 0.5s infinite;
+  }
+
+
+
+
+  /* Vertical slider styling for Chrome/Safari */
+  input[type="range"][readonly] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="range"][readonly]::-webkit-slider-track {
+    width: 50px;
+    height: 100%;
+    background: linear-gradient(to bottom, orange 0%, orange 100%);
+    border-radius: 25px;
+    border: 2px solid #ff8800;
+  }
+
+  input[type="range"][readonly]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 50px;
+    height: 20px;
+    background: #fff;
+    border: 3px solid orange;
+    border-radius: 10px;
+    cursor: default;
+  }
+
+  /* Firefox */
+  input[type="range"][readonly]::-moz-range-track {
+    width: 50px;
+    height: 100%;
+    background: linear-gradient(to bottom, orange 0%, orange 100%);
+    border-radius: 25px;
+    border: 2px solid #ff8800;
+  }
+
+  input[type="range"][readonly]::-moz-range-thumb {
+    width: 50px;
+    height: 20px;
+    background: #fff;
+    border: 3px solid orange;
+    border-radius: 10px;
+    cursor: default;
+  }
