@@ -318,8 +318,8 @@
       pressure: 4000,
       arousal: 4000,
       motor: 255,
-      threshold: 400,
-      denied: 10,
+      threshold: 3950,
+      denied: 19,
       runMode: "ENDLESS",
       localTime: Date.now(),
     } as eomReading,  
@@ -365,8 +365,9 @@
 
   let showSettings = $state(false);
   let showToys = $state(false);
+  let settingsDialog = $state() as HTMLDialogElement;
+  let toysDialog = $state() as HTMLDialogElement;
   let displayMode = $state(0) as number;
-  let dialog = $state() as HTMLDialogElement;
 
   function chartReady() {
     console.log("Chart ready");
@@ -883,17 +884,17 @@
 <div
   class="mainContainer"
   onclick={(e) => {
-    if (e.target !== dialog) dialog.close();
+    if (e.target !== settingsDialog) settingsDialog.close();
   }}
   onkeyup={(e) => {
-    if (e.key === "Escape") dialog.close();
+    if (e.key === "Escape") settingsDialog.close();
   }}
   role="none"
 >
-  <div style="position: relative; padding: .5%; width:100%;display: flex; justify-content: center; align-items: center;flex-direction: column;">
-    <div style="display: flex; justify-content:space-between; width: 100%; ">
+  <div style="position: relative; padding: 0; width: 100%; max-width: 100%; box-sizing: border-box; display: flex; justify-content: center; align-items: center; flex-direction: column; overflow-x: hidden;">
+    <div style="display: flex; justify-content: space-between; width: 100%; max-width: 100%; box-sizing: border-box; padding: 4px; flex-wrap: wrap; gap: 0.5rem;">
 
-      <div style={isBtConnected ? "visibility: hidden;" : "white-space: nowrap; display: flex; align-items: center;"}>
+      <div style={isBtConnected ? "visibility: hidden;" : "display: flex; align-items: center; flex-shrink: 1; min-width: 0;"}>
         <!-- <input
           id="url"
           type="text"
@@ -916,7 +917,7 @@
       </button>
       </div>
 
-      <div style={isWsConnected ? "visibility: hidden;" : "white-space: nowrap; display: flex; align-items: center;"}>
+      <div style={isWsConnected ? "visibility: hidden;" : "display: flex; align-items: center; flex-shrink: 1; min-width: 0;"}>
         <button
           title="Use bluetooth to connect to EOM"
           onclick={() => {
@@ -1199,7 +1200,7 @@
 
       </div>
     </div>
-    <div style={displayMode != 0 ? "display: none;" : ""}>
+    <div class="gaugesWrapper" style={displayMode != 0 ? "display: none;" : ""}>
       <div class="gauges">
         <div class="gaugeRow">
 
@@ -1310,14 +1311,14 @@
                 {Math.round(lastNumericValue($state.snapshot(readings), "arousal") / maxY * 100)}%
               </text>
               <text
-              x="100"
-              y="130"
-              text-anchor="middle"
-              dominant-baseline="middle"
-              fill="red"
-              font-size="16"
-              font-weight="bold"
-              class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-text" : ""}
+                x="100"
+                y="130"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                fill="red"
+                font-size="16"
+                font-weight="bold"
+                class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-text" : ""}
               >
               Arousal
             </text>
@@ -1329,7 +1330,7 @@
           style="background-color: red; border-color: darkred;"
           onclick={() => {
             handleBasicChange("triggerArousal", null);
-          }}>Trigger Edge/Cooldown
+          }}>Trigger Edge
             </button>
             
           </div>
@@ -1479,7 +1480,7 @@
     </div>
     <div class="radioBoxes">
       <div class="radioBox">
-        <div style="font-weight: bold; margin-right: 2em; color:#999">Control:</div>
+        <div style="font-weight: bold; margin-right: 2em; color:#999">Control </div>
         {#each runModes as runMode, index}
           <div class="radioBoxItem">
             <input
@@ -1502,7 +1503,7 @@
       <div
         class="radioBox"
       >
-        <div style="font-weight: bold; margin-right: 0.5em; color:#999">Mode:</div>
+        <div style="font-weight: bold; margin-right: 0.5em; color:#999">&nbsp;&nbsp;Mode: </div>
         {#each Object.entries(vibration_modes) as [modeId, modeName], index}
           {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode !== 'ORGASM' || modeId !== '3'}
           <div class="radioBoxItem">
@@ -1563,14 +1564,14 @@
   class="settingsDialog"
   style=""
   open={showSettings}
-  bind:this={dialog}
+  bind:this={settingsDialog}
   onclose={() => (showSettings = false)}
 >
   <div style="padding: 0; margin-top: 0;">
     <button
       style="float:right; font-size: 1.5em; background: none; border: none; cursor: pointer;"
       aria-label="Close settings"
-      onclick={() => dialog.close()}
+      onclick={() => settingsDialog.close()}
     >
       &times;
     </button>
@@ -1586,14 +1587,14 @@
   class="settingsDialog"
   style=""
   open={showToys}
-  bind:this={dialog}
+  bind:this={toysDialog}
   onclose={() => (showToys = false)}
 >
   <div style="padding: 0; margin-top: 0;">
     <button
       style="float:right; font-size: 1.5em; background: none; border: none; cursor: pointer;"
       aria-label="Close settings"
-      onclick={() => dialog.close()}
+      onclick={() => toysDialog.close()}
     >
       &times;
     </button>
