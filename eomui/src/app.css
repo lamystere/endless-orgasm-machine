@@ -219,7 +219,6 @@ h2 {
   margin: 0 auto;
 
 }
-
 @media screen and (max-width: 700px) {
   .gaugesWrapper {
     width: 100%;
@@ -279,6 +278,14 @@ h2 {
   }
   .gauges {
     justify-content: center;
+  }
+}
+@media screen and (max-width: 460px) {
+  .radioBox {
+    font-size: 0.6em;
+  }
+  .circular-progress {
+    max-width: 30vw;
   }
 }
 

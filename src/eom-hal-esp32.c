@@ -57,6 +57,7 @@ void eom_hal_init_pressure_sensor(void) {
     // ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_CHANNEL_5,ADC_ATTEN_DB_11));
     adc_oneshot_new_unit(&adc1_cfg, &adc1_handle);
 
+    //intializing LED here also for now..need a general hardware init
     gpio_reset_pin(LED_PIN);
     gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
 }

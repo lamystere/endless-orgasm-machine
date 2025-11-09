@@ -358,6 +358,7 @@
   let thresholdStep = 100;
   let isWsConnected = $state(false) as boolean;
   let isBtConnected = $state(false) as boolean;
+  let lastConnection = $state("bt") as string;
 
   let mainSend: any = null;
   let btDevice: any = null;
@@ -451,7 +452,7 @@
   }
 
   function updateChart() {
-    if (!ctx || !chartCanvas) return;
+    if (!ctx || !chartCanvas || displayMode != 1) return;
     const _readings = $state.snapshot(readings);
     if (_readings.length === 0) return;
     const xScale = scaleLinear(
@@ -655,15 +656,20 @@
     setInterval(() => {
       let lastReadingTime = $state.snapshot(readings)[$state.snapshot(readings).length - 1].localTime ?? 0;
       if (Date.now() - lastReadingTime > 10000) { // 10 seconds threshold
-        console.log("WebSocket data is stale...dropped connection?");
-        isWsConnected = false;
-        socket.close();
-        socket = new WebSocket(wssUrl);
-        initializeWebSocket(socket);
-        console.log("Reconnecting to ", wssUrl, socket);
+        console.log("Data is stale...dropped connection?");
+        if (lastConnection == "ws") {
+          console.log("Reconnecting WebSocket...");
+          isWsConnected = false;
+          socket.close();
+          socket = new WebSocket(wssUrl);
+          initializeWebSocket(socket);
+          console.log("Reconnecting to ", wssUrl, socket);
+        } else {
+          //should I just let bluetooth handle its state by itself?
+          isBtConnected = false;
+          btDevice?.disconnect();
+        }
       }
-      // Note: The browser automatically responds to server PING frames with PONG frames
-      // No need to manually send keepalive messages from the client
     }, 5000); // Check for stale data every 5 seconds
 
   }
@@ -802,6 +808,7 @@
       socket?.close();
       isWsConnected = false;
       socket = new WebSocket(wssUrl);
+      lastConnection = "ws";
       initializeWebSocket(socket);
       console.log("Connecting to ", wssUrl, socket);
     }
@@ -857,7 +864,9 @@
   }
 
   const bt = (navigator as any).bluetooth; 
-
+  window.onresize = () => {
+    chartReady();
+  };
 </script>
 
 {#snippet InputSlider(id: string)}
@@ -942,6 +951,7 @@
                   btDevice = device;
                   device.gatt.connect()
                     .then((server: any) => {
+                      lastConnection = "bt";
                       console.log('Connected to GATT server:', server);                      
                       server.getPrimaryService(0x6969).then((service: any) => {
                         console.log('Got primary service:', service);
@@ -1480,7 +1490,7 @@
     </div>
     <div class="radioBoxes">
       <div class="radioBox">
-        <div style="font-weight: bold; margin-right: 2em; color:#999">Control </div>
+        <div style="font-weight: bold; margin-right: 2em; color:#999">Control:</div>
         {#each runModes as runMode, index}
           <div class="radioBoxItem">
             <input

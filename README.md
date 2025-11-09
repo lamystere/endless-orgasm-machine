@@ -1,4 +1,5 @@
-# Endless Orgasm Machine - An Automated Orgasm Denial Device for ESP32
+# Endless Orgasm Machine
+**An automated orgasm denial and enhancement device for the DIY community**
 
 ### It knows...
 What will surprise you most is how accurate it is that you only have a few moments left.  In this day and age algorithms are a respected part of our lives...this one knows you better than yourself.
@@ -104,6 +105,7 @@ This project was first vastly simplified then expanded with compatibility in min
 - Is pressure multiplier working as intended?
 - add build walkthrough to docs and more examples, pinouts and schematics
 - ui and websockets using same endpoint if possible
+- logging from the app
 - add X axis on chart (seconds)
 - chart glitch on left side at startup
 - make motor pin selection more intuitive
@@ -130,15 +132,16 @@ This project was first vastly simplified then expanded with compatibility in min
 - edge times are in seconds
 
 ## Standing on the shoulders of giants
-This is a product of the open source community.  This will always be open source.  Sharing knowledge this way goes back to patent offices, or perhaps cave-man fire.  Sometimes the term can be abused by making things appear open when key information is obfuscated or taking formerly open repositories offline...that practice of monetizing is also as old as time.  No shame. This particular project intends to focus on information sharing and DIY accessibility as much as functionality.  You should be always be able to build this yourself if you have the free time.  I hope the open-source community can elevate this project or else make something much more useful than I am capable of.
+This is a product of the open source community.  This will always be open source.  Sharing knowledge this way goes back to patent offices, or perhaps cave-man fire.  Sometimes the term can be abused by making things appear open when key information is obfuscated or taking formerly open repositories offline...that practice of monetizing is also as old as time.  No shame.  Open-source doesn't mean no profiting. This particular project intends to focus on information sharing and DIY accessibility as much as functionality.  You should be always be able to build this yourself if you have the free time.  I hope the open-source community can elevate this project and make it even more useful than I am capable of.
 
-## Sources of Inspiration
+## Contribution and Inspiration from:
 
-- **TheElims** Gave feedback and worked on [a similar device with much more slick hardware](https://github.com/skier233/SmartAssPlug-development) - 
+- **Rhobot** with the original [nogasm project](https://github.com/nogasm/nogasm) that started it all
+- **TheElims** Gave feedback and works on [a similar device with much more slick hardware](https://github.com/skier233/SmartAssPlug-development) - 
 - **Skier23** who curates a [repository](https://github.com/Edging-Machines/Edging-Machines) and [discord](https://discord.gg/EvYbZBf) with all information regarding the topic.
 - [Buttplug.io by Qdot](https://buttplug.io/) - Him and his discord team were very helpful even though he was a skeptical dickhead when I told him I was making yet another networked nogasm toy
 - **Rudolf**, who came up with the [coiled silicone tube](https://www.thingiverse.com/thing:3543727) as sensor element and even has written a [scientific paper](https://www.degruyter.com/document/doi/10.1515/pjbr-2020-0014/pdf) on that topic.
-- **Rhobot** with the original [nogasm project](https://github.com/nogasm/nogasm)
+
 - **Onwrikbaar** with his bullfrog, who refined the simple [nogasm algorithm](https://github.com/Onwrikbaar/Bullfrog) with a peak summation and decay function.
 - **night-howler** who contributed a breadboard friendly version of the nogasm called [protogasm](https://github.com/night-howler/protogasm).
 - **Maus-Tec** who manufactures and sells the [Edge-O-Matic](https://github.com/MausTec/edge-o-matic-3000)
