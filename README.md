@@ -12,7 +12,7 @@ Using an inflatable butt plug to detect pressure changes indicative of pelvic fl
 
 ### But I like orgasms...
 
-Having to wait for it while being right at the edge makes it more intense!  Trying to resist getting close is a turn-on for some.  When you're ready to end the edging you can use "Control: Orgasm" to allow you to finish after a chosen number of minutes... or simply set it to "Control: Manual" and leave it running.  It can also be used after orgasms to determine exactly when the refractory period has subsided enough to begin the next round of pleasuring. 
+Having to wait for it while being right at the edge makes it more intense!  Trying to resist getting close is a turn-on for some.  When you're ready to end the edging you can use "Control: Orgasm" to allow you to finish after a chosen number of minutes or near-orgasms... if you've had enough simply set it to "Control: Manual" and take care of things manually.  It can also be used after orgasms to determine exactly when the refractory period has subsided enough to begin the next round of pleasuring. 
 
 ![Screenshot](doc/Screenshot.png)
 
@@ -28,6 +28,10 @@ Having to wait for it while being right at the edge makes it more intense!  Tryi
 ## Web UI
 
 [The UI](eomui/README.md) is posted at https://lamystere.github.io/endless-orgasm-machine/eomui/public and can be installed on your Android or PC for offline use. 
+
+This is what the app view looks like:
+(the purple icon switches between chart mode and realtime mode)
+![Screenshot](doc/Screenshot3.png)
 
 [The UI](eomui/README.md) is also on the ESP32 itself and can be found by visiting the ```/ui``` endpoint at the IP address of your device.  You can watch the serial output to determine the IP.
 
@@ -58,9 +62,9 @@ Using Xtoys you can connect to the EOM and let it control your other Xtoys devic
 
 ## Hardware
 
-[Build Examples](doc/building/building.md)
+#### [Build examples here](doc/building/building.md)
 
-This can be tested on almost any ESP32 device without any extra hardware by touching the pressure sensor pin.  This will simulate a pressure sensor being squeezed.  To actually play with it you will need to attach a pressure sensor and plug.  The [MPX5100DP](https://www.digikey.com/en/products/detail/nxp-usa-inc/MPX5100DP/464060) is the sensor it was designed around but anything capable of 15psi or greater should work whether analog or SPI.  Plug the port of the pressure sensor into the air hose for the butt plug.  
+You can test this out on almost any ESP32 device without any extra hardware by touching the pin assigned to the pressure sensor (or all the pins if you're not sure which one it is).  This will be like a pressure sensor being squeezed.  To actually play with this device you will need to attach an actual pressure sensor and butt-plug.  The [MPX5100DP](https://www.digikey.com/en/products/detail/nxp-usa-inc/MPX5100DP/464060) is the sensor it was designed around but anything capable of 15psi or greater should work whether analog or SPI.  Plug the port of the pressure sensor into the air hose for the butt plug.  
 
 To get it to resemble [the original Nogasm device](https://github.com/nogasm/nogasm) you can then add a [12v power supply](https://www.amazon.com/ACEIRMC-Battery-Plastic-Storage-Connect/dp/B0986RMKBJ) and [charger](https://www.amazon.com/Battery-Charger-Lithium-Display-RC123A/dp/B0CRKSFTK9), a [simple transistor](https://www.amazon.com/ALLECIN-IRF4905-Transistors-IRF4905PBF-Transistor/dp/B0CBKGJT9N) or more protected [motor controller](https://www.amazon.com/High-Power-Adjustment-Electronic-Controller-Brightness/dp/B0DZP1NCVW), a [flyback diode](https://www.amazon.com/15SQ045-Diodes-Schottky-Blocking-Silicon/dp/B0D4F2WVS5), and [vibrator motor](https://www.amazon.com/RPTCOTU-R555-Vibration-Motor-Electrodynamic/dp/B0CSYWK5KQ).  You could share that power supply to the esp32 [through a buck converter](https://www.amazon.com/Regulator-Reducer-Converter-Aircraft-MP1584EN/dp/B0B779ZYN1) to make the whole thing wireless.  That's it.  You can set this all up to attach to the buttplug rather than having a wires and tubes leading to a control box, but its a matter of opinion which way is better.  
 
@@ -110,6 +114,7 @@ This project was first vastly simplified then expanded with compatibility in min
 - Running average math seems off
 
 ### Notable differences from Edge-o-matic
+(I'll probably remove this section soon...there's more new code than old)
 - Not tied to specific hardware!
 - Runs over bluetooth
 - Orgasm mode available over UI! (denies orgasms until timer runs out)
@@ -123,3 +128,18 @@ This project was first vastly simplified then expanded with compatibility in min
 - action manager system removed
 - hardwire networked device support removed 
 - edge times are in seconds
+
+## Standing on the shoulders of giants
+This is a product of the open source community.  This will always be open source.  Sharing knowledge this way goes back to patent offices, or perhaps cave-man fire.  Sometimes the term can be abused by making things appear open when key information is obfuscated or taking formerly open repositories offline...that practice of monetizing is also as old as time.  No shame. This particular project intends to focus on information sharing and DIY accessibility as much as functionality.  You should be always be able to build this yourself if you have the free time.  I hope the open-source community can elevate this project or else make something much more useful than I am capable of.
+
+## Sources of Inspiration
+
+- **TheElims** Gave feedback and worked on [a similar device with much more slick hardware](https://github.com/skier233/SmartAssPlug-development) - 
+- **Skier23** who curates a [repository](https://github.com/Edging-Machines/Edging-Machines) and [discord](https://discord.gg/EvYbZBf) with all information regarding the topic.
+- [Buttplug.io by Qdot](https://buttplug.io/) - Him and his discord team were very helpful even though he was a skeptical dickhead when I told him I was making yet another networked nogasm toy
+- **Rudolf**, who came up with the [coiled silicone tube](https://www.thingiverse.com/thing:3543727) as sensor element and even has written a [scientific paper](https://www.degruyter.com/document/doi/10.1515/pjbr-2020-0014/pdf) on that topic.
+- **Rhobot** with the original [nogasm project](https://github.com/nogasm/nogasm)
+- **Onwrikbaar** with his bullfrog, who refined the simple [nogasm algorithm](https://github.com/Onwrikbaar/Bullfrog) with a peak summation and decay function.
+- **night-howler** who contributed a breadboard friendly version of the nogasm called [protogasm](https://github.com/night-howler/protogasm).
+- **Maus-Tec** who manufactures and sells the [Edge-O-Matic](https://github.com/MausTec/edge-o-matic-3000)
+
