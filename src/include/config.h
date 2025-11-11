@@ -39,7 +39,7 @@ static const char* CONFIG_FILENAME = "/spiffs/config.json";
 #define EOM_HAL_PRESSURE_MAX 0x0FFF // 12 bits ADC reading is standard for esp32
 
 #define DEFAULT_AMBIENT_RESSURE 0
-#define DEFAULT_PRESSURE_SENSITIVITY 32
+#define DEFAULT_PRESSURE_SENSITIVITY 3
 
 enum command_err {
     CMD_FAIL = -1,

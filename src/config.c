@@ -51,7 +51,7 @@ CONFIG_DEFS {
     CFG_NUMBER(sensitivity_threshold, 1000);
     CFG_NUMBER(motor_ramp_time_s, 120);
     CFG_NUMBER(update_frequency_hz, 50);
-    CFG_NUMBER(sensor_sensitivity, 32);
+    CFG_NUMBER(sensor_sensitivity, 3);
     CFG_BOOL(use_average_values, true);
 
     // Vibration Settings

@@ -1,6 +1,12 @@
 include <BOSL2/std.scad>  //You will need to install the BOSL2 library to your openSCAD library (https://github.com/BelfrySCAD/BOSL2):
 $fn = 100;
 
+show_body = true;
+show_lid = true;
+show_cap = true;
+preview_electronics = true;
+
+
 seed_w = 20;
 seed_h = 24;
 seed_d = 2;
@@ -17,24 +23,23 @@ battery_d = 15;
 
 box_iw = 65;
 box_ih = 28;
-box_id = 17;
+box_id = 18;
 box_top_rise = 3;
 box_fillet = 5;
 box_bottom_fillet_hack = 5;
 
 shaft_od = 12;
-shaft_h = 35;
+shaft_h = 25;
 
 cap_bottom_h = 10;
 cap_middle_h = 5;
-cap_top_h = 40;
+cap_top_h = 25;
 cap_middle_od = 27;
 
 wall_thickness = 2;
 tubing_od = 3;
 tubing_od_allowance = 1;
 
-preview_electronics = true;
 
 box_points = [
   [-box_iw / 2 - wall_thickness * 2, -box_ih / 2 - box_fillet - wall_thickness], //bottom left
@@ -67,89 +72,92 @@ box_points = [
 
 bottom_of_shaft = box_ih / 2 + box_top_rise + wall_thickness;
 
-//components compartment
-difference() {
-  union() {
-    translate([-box_id / 2 - wall_thickness, 0, tubing_od_allowance * 2])
-      rotate([90, 0, 90])
-        //filleted top and bottom
-        fillet_extrude(height=box_id + wall_thickness * 2, r1=-5, r2=-5)
-          polygon(box_points);
-
-    //shaft tubing collar
+if (show_body) {
+    //components compartment
     difference() {
-        translate([0,0,bottom_of_shaft]) cylinder(h=tubing_od/2, d1=shaft_od + tubing_od,d2=shaft_od, center=true);
-        translate([0,0,bottom_of_shaft + tubing_od/4]) torus(id=shaft_od, od=shaft_od + tubing_od, $fn=100);
-    }
-  }
-  translate([0, 0, -box_id - box_fillet / 2]) 
-    cube([box_iw + wall_thickness * 2, box_iw + wall_thickness * 2 + box_fillet * 2, box_fillet * 2], center=true);  //cut off bottom of box
-  translate([0, 0, -wall_thickness]) 
-    cube([box_id, box_iw, box_ih], center=true); //cavity for electronics
-  cylinder(h=shaft_h + 2, d=tubing_od, center=true); //center hole for wire
-  translate([shaft_od / 2 + tubing_od / 2, 0, bottom_of_shaft]) 
-    rotate([45, 0, 0]) 
-        cylinder(h=box_ih, d=tubing_od + tubing_od_allowance/2, center=true); //hole for pressure tube
-}
+    union() {
+        translate([-box_id / 2 - wall_thickness, 0, tubing_od_allowance * 2])
+        rotate([90, 0, 90])
+            //filleted top and bottom
+            fillet_extrude(height=box_id + wall_thickness * 2, r1=-5, r2=-5)
+            polygon(box_points);
 
-//shaft
-difference() {
-     translate([0, 0, bottom_of_shaft + shaft_h / 2]) 
-        cylinder(h=shaft_h, d=shaft_od, center=true); //shaft
-  translate([0, 0, bottom_of_shaft + shaft_h / 2]) 
-    cylinder(h=shaft_h + 2, d=tubing_od, center=true); //hole up the middle
-  translate([0, 0, bottom_of_shaft + shaft_h - tubing_od / 2]) 
-    rotate([90, 0, 0]) 
-        cylinder(h=cap_middle_od + 2, d=tubing_od + tubing_od_allowance/2, center=true); //hole for tubing end
+        //shaft tubing collar
+        difference() {
+            translate([0,0,bottom_of_shaft]) cylinder(h=tubing_od/2, d1=shaft_od + tubing_od,d2=shaft_od, center=true);
+            translate([0,0,bottom_of_shaft + tubing_od/4]) torus(id=shaft_od, od=shaft_od + tubing_od, $fn=100);
+        }
+    }
+    translate([0, 0, -box_id - box_fillet / 2]) 
+        cube([box_iw + wall_thickness * 2, box_iw + wall_thickness * 2 + box_fillet * 2, box_fillet * 2], center=true);  //cut off bottom of box
+    translate([0, 0, -wall_thickness]) 
+        cube([box_id, box_iw, box_ih], center=true); //cavity for electronics
+    cylinder(h=shaft_h + 2, d=tubing_od, center=true); //center hole for wire
+    translate([shaft_od / 2 + tubing_od / 2, 0, bottom_of_shaft]) 
+        rotate([45, 0, 0]) 
+            cylinder(h=box_ih, d=tubing_od + tubing_od_allowance/2, center=true); //hole for pressure tube
+    }
+
+    //shaft
+    difference() {
+        translate([0, 0, bottom_of_shaft + shaft_h / 2]) 
+            cylinder(h=shaft_h, d=shaft_od, center=true); //shaft
+    translate([0, 0, bottom_of_shaft + shaft_h / 2]) 
+        cylinder(h=shaft_h + 2, d=tubing_od, center=true); //hole up the middle
+    translate([0, 0, bottom_of_shaft + shaft_h - tubing_od / 2]) 
+        rotate([90, 0, 0]) 
+            cylinder(h=cap_middle_od + 2, d=tubing_od + tubing_od_allowance/2, center=true); //hole for tubing end
+    }
 }
 
 top_of_shaft = bottom_of_shaft + shaft_h;
 
-
-cap_points = [
-   [0, top_of_shaft], //point
-   [tubing_od / 4, top_of_shaft],
-   [tubing_od / 2, top_of_shaft],
-   [shaft_od / 2 + tubing_od / 2, top_of_shaft], //point
-   [shaft_od / 2 + tubing_od / 2, top_of_shaft + cap_bottom_h/4],
-   [cap_middle_od/2 *.75, top_of_shaft + cap_bottom_h - cap_middle_h/4],
-   [cap_middle_od/2 * .875, top_of_shaft + cap_bottom_h],  //point
-   [cap_middle_od/2, top_of_shaft + cap_bottom_h + cap_middle_h/4],
-   [cap_middle_od/2, top_of_shaft + cap_bottom_h + cap_middle_h*.75],
-   [cap_middle_od/2, top_of_shaft + cap_bottom_h + cap_middle_h],  //point
-   [cap_middle_od/2, top_of_shaft + cap_bottom_h + cap_middle_h + cap_top_h/4],
-   [shaft_od/2, top_of_shaft + cap_bottom_h + cap_middle_h + cap_top_h],
-   [0, top_of_shaft + cap_bottom_h + cap_middle_h + cap_top_h]  //point
-]; 
-debug_bezier(bezpath = cap_points); 
-rotate_extrude()
-  //create cap shape
-  polygon(bezpath_curve(cap_points));
-
-//components back cover
-translate([box_id / 2 + wall_thickness + 5,0,-box_id/2 + .75]) { //?
-    difference() {
-        scale([1,1,.5])
-            difference() {
-                translate([0, 0, -box_ih - wall_thickness +tubing_od_allowance * 2])
-                    rotate([90, 180, 90])
-                        fillet_extrude(height=box_id + wall_thickness * 2, r1=-5, r2=-5)
-                            polygon(box_points); //filleted top and bottom
-
-                //cut off top this time
-                translate([-box_iw/2, -box_iw/2 - wall_thickness - box_fillet, -box_id * 2 - box_id/2 - box_fillet]) 
-                    cube([box_iw + wall_thickness * 2, box_iw + wall_thickness * 2 + box_fillet * 2, box_id * 2]);
-  
-            }
-        //usb hole
-        translate([usb_h/2 + wall_thickness,box_iw/2 - wall_thickness-seed_w/2 - usb_w/2,-usb_h-2])  
-            //cube([usb_h, usb_w, usb_h], center=true);
-            linear_extrude(height = usb_h, scale = 2)
-                square([usb_h, usb_w], center = true);  //expand the square outward
-    }
+if (show_cap) {
+    cap_points = [
+        [0, top_of_shaft], //point
+        [tubing_od / 4, top_of_shaft],
+        [tubing_od / 2, top_of_shaft],
+        [shaft_od / 2 + tubing_od / 2, top_of_shaft], //point
+        [shaft_od / 2 + tubing_od / 2, top_of_shaft + cap_bottom_h/4],
+        [cap_middle_od/2 *.75, top_of_shaft + cap_bottom_h - cap_middle_h/4],
+        [cap_middle_od/2 * .875, top_of_shaft + cap_bottom_h],  //point
+        [cap_middle_od/2, top_of_shaft + cap_bottom_h + cap_middle_h/4],
+        [cap_middle_od/2, top_of_shaft + cap_bottom_h + cap_middle_h*.75],
+        [cap_middle_od/2, top_of_shaft + cap_bottom_h + cap_middle_h],  //point
+        [cap_middle_od/2, top_of_shaft + cap_bottom_h + cap_middle_h + cap_top_h/4],
+        [shaft_od/2, top_of_shaft + cap_bottom_h + cap_middle_h + cap_top_h],
+        [0, top_of_shaft + cap_bottom_h + cap_middle_h + cap_top_h]  //point
+    ]; 
+    rotate_extrude()
+    //create cap shape
+    polygon(bezpath_curve(cap_points));
 }
 
+if (show_lid) {
+    //components back cover
+    translate([box_id / 2 + wall_thickness + 5,0,-box_id/2 + .75]) { //?
+        difference() {
+            scale([1,1,.5])
+                difference() {
+                    translate([0, 0, -box_ih - wall_thickness +tubing_od_allowance * 2])
+                        rotate([90, 180, 90])
+                            fillet_extrude(height=box_id + wall_thickness * 2, r1=-5, r2=-5)
+                                polygon(box_points); //filleted top and bottom
 
+                    //cut off top this time
+                    translate([-box_iw/2, -box_iw/2 - wall_thickness - box_fillet, -box_id * 2 - box_id/2 - box_fillet]) 
+                        cube([box_iw + wall_thickness * 2, box_iw + wall_thickness * 2 + box_fillet * 2, box_id * 2]);
+    
+                }
+
+            //usb hole
+            translate([usb_h/2 + wall_thickness, -1*(box_iw/2 - wall_thickness - usb_w), -usb_h-2])  
+                //cube([usb_h, usb_w, usb_h], center=true);
+                linear_extrude(height = usb_h, scale = 2)
+                    square([usb_h, usb_w], center = true);  //expand the square outward
+        }
+    }
+}
 
 
 // From The_Hans: https://gist.github.com/thehans/b47ab7077c862361eb5d8f095448b2d4

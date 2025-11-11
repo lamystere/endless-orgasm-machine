@@ -16,7 +16,7 @@ uint8_t pressure_ambient = DEFAULT_AMBIENT_RESSURE;
 uint8_t pressure_sensitivity = DEFAULT_PRESSURE_SENSITIVITY;  
 
 adc_oneshot_unit_handle_t adc1_handle;
-adc_oneshot_unit_init_cfg_t adc1_cfg = {
+adc_oneshot_unit_init_cfg_t adc1_init_cfg = {
     .unit_id = ADC_UNIT_1,
     .ulp_mode = ADC_ULP_MODE_DISABLE,
 };
@@ -36,14 +36,19 @@ adc_oneshot_unit_init_cfg_t adc1_cfg = {
 //=== Pressure
 uint16_t eom_hal_get_pressure_reading(void) {
     int raw = 0;
-    adc_oneshot_read(adc1_handle, ADC_CHANNEL_0, &raw);
+
+    //ADC_CHANNEL_0 = pin 1 on Waveshare ESP32-S3
+
+    adc_oneshot_read(adc1_handle, ADC_CHANNEL_0, &raw);  
 
     //ESP_LOGI(TAG, "Pressure raw: %d", raw);
     raw = raw - pressure_ambient;
     if (raw < 0) {
         raw = 0;
-        //eom_hal_setup_pressure_ambient();
+        eom_hal_setup_pressure_ambient();
     }
+
+    //raw *= pressure_sensitivity;  //option 1: software multiplier - not necessary if using this value to set different attenuation levels
     if (raw > EOM_HAL_PRESSURE_MAX) raw = EOM_HAL_PRESSURE_MAX;
     return (uint16_t)raw;
 }
@@ -54,8 +59,19 @@ uint8_t eom_hal_get_sensor_sensitivity(void) {
 
 void eom_hal_init_pressure_sensor(void) {
     // ESP_ERROR_CHECK(adc1_config_width(ADC_BITWIDTH_12));
-    // ESP_ERROR_CHECK(adc1_config_channel_atten(ADC_CHANNEL_5,ADC_ATTEN_DB_11));
-    adc_oneshot_new_unit(&adc1_cfg, &adc1_handle);
+
+    adc_atten_t esp_sensitivity = Config.sensor_sensitivity >= 3 ? ADC_ATTEN_DB_0 
+                                : (Config.sensor_sensitivity == 2 ? ADC_ATTEN_DB_2_5 
+                                : (Config.sensor_sensitivity == 1 ? ADC_ATTEN_DB_6 
+                                : ADC_ATTEN_DB_12));
+    adc_oneshot_chan_cfg_t adcCfg = {
+        .bitwidth = ADC_BITWIDTH_12,
+        .atten = esp_sensitivity,
+    };
+    adc_oneshot_new_unit(&adc1_init_cfg, &adc1_handle);
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_0, &adcCfg));
+
+    eom_hal_setup_pressure_ambient();
 
     //intializing LED here also for now..need a general hardware init
     gpio_reset_pin(LED_PIN);
@@ -69,14 +85,34 @@ void eom_hal_setup_pressure_ambient(void) {
     for (int i = 0; i < 10; i++) {
         readings[i] = eom_hal_get_pressure_reading();
         sum += readings[i];
-        // Small delay between readings
-        //vTaskDelay(10);
+        
+        //vTaskDelay(10);  // Small delay between readings?
     }
     pressure_ambient = sum / 10;
 }
 
 void eom_hal_set_sensor_sensitivity(uint8_t sensitivity) {
     pressure_sensitivity = sensitivity;
+
+    if (adc1_handle == NULL) return; //not initialized yet
+
+    adc_atten_t esp_sensitivity = sensitivity >= 3 ? ADC_ATTEN_DB_0 
+                                : (sensitivity == 2 ? ADC_ATTEN_DB_2_5 
+                                : (sensitivity == 1 ? ADC_ATTEN_DB_6 
+                                : ADC_ATTEN_DB_12));
+    adc_oneshot_chan_cfg_t adcCfg = {
+        .bitwidth = ADC_BITWIDTH_12,
+        .atten = esp_sensitivity,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_0, &adcCfg));
+
+    //use this as a software multiplier or use it to set different ADC attenuation levels?
+    // ADC_ATTEN_DB_0   = 0,  ///<No input attenuation, ADC can measure up to approx.
+    // ADC_ATTEN_DB_2_5 = 1,  ///<The input voltage of ADC will be attenuated extending the range of measurement by about 2.5 dB
+    // ADC_ATTEN_DB_6   = 2,  ///<The input voltage of ADC will be attenuated extending the range of measurement by about 6 dB
+    // ADC_ATTEN_DB_12  = 3,  ///<The input voltage of ADC will be attenuated extending the range of measurement by about 12 dB
+
+
 }
 
 //=== Vibration

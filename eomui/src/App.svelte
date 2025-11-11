@@ -98,7 +98,8 @@
     return typeof val === "number" ? val : 0;
   }
 
-  function lastNumericValue(r: eomReading[], lineType: string): number {
+  function lastNumericValue(lineType: string): number {
+    let r = $state.snapshot(readings);
     if (r.length === 0) return 0;
     const lastReading = r[r.length - 1];
     //const val = (lastReading as any)[lineType];
@@ -110,9 +111,9 @@
       value: 1000,
       min: 0,
       max: 4096,
-      label: "Arousal Threshold",
+      label: "Arousal Edge Threshold",
       type: "%",
-      description: "The arousal threshold for orgasm detection. Lower values stop sooner.",
+      description: "The arousal threshold for orgasm detection. Lower values stop sooner. Everyone will have their own ideal setting here.",
     },
     vibration_mode: { 
       value: 2, 
@@ -204,9 +205,9 @@
       description: "Update frequency for pressure readings and arousal steps.",
     },
     sensor_sensitivity: {
-      value: 16,
-      min: 1,
-      max: 255,
+      value: 3,
+      min: 0,
+      max: 3,
       label: "Sensor Sensitivity",
       type: "%",
       description: "Analog pressure sensor prescaling. Higher values are more sensitive.",
@@ -283,25 +284,33 @@
       type: "yes/no",
       description: "Use average values when calculating arousal. This smooths noisy data.",
     },
+    // wifi_on: {
+    //   value: 1,
+    //   min: 0,
+    //   max: 1,
+    //   label: "Use WiFi",
+    //   type: "yes/no",
+    //   description: "Enable WiFi connectivity for remote control and monitoring.",
+    // },
   } as eomSettings);
 
   let mainSettings: string[] = [
     "sensitivity_threshold",
+    "sensor_sensitivity",
     "motor_ramp_time_s",
     "edge_delay",
     "chart_window_s",
   ];
   
   let modalSettings: string[] = [
+    //"wifi_on",
     "max_additional_delay",
     "max_pleasure",
     "initial_pleasure",
-    "sensor_sensitivity",
     "max_denied",
     "minimum_on_time",
     "pressure_smoothing",
     "update_frequency_hz",
-    "sensor_sensitivity",
     "clench_pressure_sensitivity",
     "clench_time_to_orgasm_ms",
     "clench_time_threshold_ms",
@@ -350,7 +359,7 @@
   //   return Array.from({ length: chartTime + 1 }, (_, i) => chartTime - i);
   // }
   const padding = { top: 10, right: 0, bottom: 5, left: 5 };
-  let maxY = 4096;
+  let maxY = 4096;  //everything is 12 bit
   let fudge: number = 2;
   let arousalThicknessMultiplier: number = 4;
   let currentPleasure = $state(0) as number;
@@ -711,10 +720,10 @@
       });
       socket.send(msg);
     } else if (isBtConnected) {
-      let currentMode: number = setting_name == "setMode" ? runModes.indexOf(String(value)) : lastNumericValue($state.snapshot(readings), "runMode");
+      let currentMode: number = setting_name == "setMode" ? runModes.indexOf(String(value)) : lastNumericValue("runMode");
       let btData;
       if (setting_name == "setMotor") {
-        let currentPleasure: number = setting_name == "setMotor" ? Number(value) : lastNumericValue($state.snapshot(readings), "pleasure");
+        let currentPleasure: number = setting_name == "setMotor" ? Number(value) : lastNumericValue("pleasure");
         btData = new Uint8Array([0x01,currentMode, 0, 0, Number(currentPleasure)]);
       } else {
         //pleasure amount is optional at end of byte array
@@ -798,7 +807,7 @@
         "Current readings:",
         $state.snapshot(readings)[$state.snapshot(readings).length - 1],
       );
-    }, 30000); // Log every 30 seconds
+    }, 1000); // Log every 30 seconds
   });
 
   function handleConnect() {
@@ -867,6 +876,145 @@
   window.onresize = () => {
     chartReady();
   };
+
+  function btConnect() {
+    if (!bt) {
+      alert('Web bluetooth is not available on iOS devices or Firefox.');
+      return;
+    }
+    if (isBtConnected) {
+      console.log('Disconnecting from Bluetooth device:', btDevice);
+      btDevice?.gatt.disconnect();
+      isBtConnected = false;
+    } else {
+      bt.requestDevice({
+        optionalServices: [0x6969, 0x696A, 0x696B],
+        filters: [{
+          namePrefix: 'Libotoy',
+        }]
+      })
+        .then((device: any) => {
+          console.log('Connecting to device:', device);
+          device.addEventListener('gattserverdisconnected', onDisconnected);
+          btDevice = device;
+          device.gatt.connect()
+            .then((server: any) => {
+              lastConnection = "bt";
+              console.log('Connected to GATT server:', server);                      
+              server.getPrimaryService(0x6969).then((service: any) => {
+                console.log('Got primary service:', service);
+
+                //readings
+                service.getCharacteristic(0x696a).then((characteristic: any) => {
+                  console.log('Got characteristic:', characteristic);
+
+                  characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
+                    const value = event.target.value;
+                    const data = new Uint8Array(value.buffer);
+                    //console.log('Received data:', data);
+                    let newReading: eomReading = {
+                      pressure: data[0]* 16, // scale to 0-4096
+                      arousal: data[1] * 16, // scale to 0-4096
+                      threshold: data[2]* 16, // scale to 0-4096
+                      motor: data[3],
+                      pleasure: data[3],
+                      cooldown: data[4],
+                      denied: data[5],
+                      runMode: runModes[data[6]] ?? "ENDLESS",
+                      pleasureMode: data[7],
+                      permit: data[8] * 255 + (data[9] ?? 0),
+                      millis: Date.now(),
+                      localTime: Date.now(),
+                    };
+                    readings.push(newReading);
+                    while (
+                      readings.length > 0 && (Date.now() - (readings[0].localTime ?? 0) > settings.chart_window_s.value * 1000)  
+                    ) {
+                      //the first reading is older than chartTime seconds
+                      readings.shift();
+                    }
+                    currentPleasure = Number(newReading.pleasure);
+                    chartCanvas?.dispatchEvent(new CustomEvent("updated", {}));
+
+                  });
+
+                  characteristic.startNotifications().then(() => {
+                    console.log('Notifications started for characteristic:', characteristic.uuid);
+                    socket?.close();
+                    isWsConnected = false;
+                    isBtConnected = true;
+                  });
+
+                });
+
+
+
+                //controls
+                service.getCharacteristic(0x696b).then((characteristic: any) => {
+                  console.log('Got control characteristic:', characteristic);
+                  mainSend = characteristic;
+                  console.log('Ready to send control commands via Bluetooth.',mainSend);
+                });
+
+                //config
+                service.getCharacteristic(0x696c).then((characteristic: any) => {
+                  console.log('Got characteristic:', characteristic);
+
+                  characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
+                    const value = event.target.value;
+                    // Create Uint8Array from the DataView with proper length
+                    const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+                    
+                    // Find the actual length by looking for null terminator
+                    let actualLength = data.length;
+                    for (let i = 0; i < data.length; i++) {
+                      if (data[i] === 0) {
+                        actualLength = i;
+                        break;
+                      }
+                    }
+                    
+                    // Convert Uint8Array to string and parse as JSON
+                    const decoder = new TextDecoder();
+                    const jsonString = '{' + decoder.decode(data.slice(0, actualLength)) + '}';
+
+                    try {
+                      console.log('Received config data:', jsonString, value);
+                      const configObj = JSON.parse(jsonString);
+                      for (const [key, val] of Object.entries(configObj)) {
+                        if (key in settings) {
+                          settings[key as keyof typeof settings].value = val as number;
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Error parsing config JSON:', error, jsonString);
+                    }
+                  });
+
+                  characteristic.startNotifications().then(() => {
+                    console.log('Notifications started for characteristic:', characteristic.uuid);
+                    sendConfigRequest();
+                  });
+
+                });
+
+
+              })
+              .catch((error: any) => {
+                console.error('Error getting primary service:', error);
+              });
+            })
+            .catch((error: any) => {
+              console.error('Error connecting to GATT server:', error);
+            });
+        })
+        .catch((error: any) => {
+          console.error(error);
+        });
+    }
+
+  }
+
 </script>
 
 {#snippet InputSlider(id: string)}
@@ -929,143 +1077,7 @@
       <div style={isWsConnected ? "visibility: hidden;" : "display: flex; align-items: center; flex-shrink: 1; min-width: 0;"}>
         <button
           title="Use bluetooth to connect to EOM"
-          onclick={() => {
-            if (!bt) {
-              alert('Web bluetooth is not available on iOS devices or Firefox.');
-              return;
-            }
-            if (isBtConnected) {
-              console.log('Disconnecting from Bluetooth device:', btDevice);
-              btDevice?.gatt.disconnect();
-              isBtConnected = false;
-            } else {
-              bt.requestDevice({
-                optionalServices: [0x6969, 0x696A, 0x696B],
-                filters: [{
-                  namePrefix: 'Libotoy',
-                }]
-              })
-                .then((device: any) => {
-                  console.log('Connecting to device:', device);
-                  device.addEventListener('gattserverdisconnected', onDisconnected);
-                  btDevice = device;
-                  device.gatt.connect()
-                    .then((server: any) => {
-                      lastConnection = "bt";
-                      console.log('Connected to GATT server:', server);                      
-                      server.getPrimaryService(0x6969).then((service: any) => {
-                        console.log('Got primary service:', service);
-
-                        //readings
-                        service.getCharacteristic(0x696a).then((characteristic: any) => {
-                          console.log('Got characteristic:', characteristic);
-
-                          characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
-                            const value = event.target.value;
-                            const data = new Uint8Array(value.buffer);
-                            //console.log('Received data:', data);
-                            let newReading: eomReading = {
-                              pressure: data[0]* 16, // scale to 0-4096
-                              arousal: data[1] * 16, // scale to 0-4096
-                              threshold: data[2]* 16, // scale to 0-4096
-                              motor: data[3],
-                              pleasure: data[3],
-                              cooldown: data[4],
-                              denied: data[5],
-                              runMode: runModes[data[6]] ?? "ENDLESS",
-                              pleasureMode: data[7],
-                              permit: data[8] * 255 + (data[9] ?? 0),
-                              millis: Date.now(),
-                              localTime: Date.now(),
-                            };
-                            readings.push(newReading);
-                            while (
-                              readings.length > 0 && (Date.now() - (readings[0].localTime ?? 0) > settings.chart_window_s.value * 1000)  
-                            ) {
-                              //the first reading is older than chartTime seconds
-                              readings.shift();
-                            }
-                            currentPleasure = Number(newReading.pleasure);
-                            chartCanvas?.dispatchEvent(new CustomEvent("updated", {}));
-
-                          });
-
-                          characteristic.startNotifications().then(() => {
-                            console.log('Notifications started for characteristic:', characteristic.uuid);
-                            socket?.close();
-                            isWsConnected = false;
-                            isBtConnected = true;
-                          });
-
-                        });
-
-
-
-                        //controls
-                        service.getCharacteristic(0x696b).then((characteristic: any) => {
-                          console.log('Got control characteristic:', characteristic);
-                          mainSend = characteristic;
-                          console.log('Ready to send control commands via Bluetooth.',mainSend);
-                        });
-
-                        //config
-                        service.getCharacteristic(0x696c).then((characteristic: any) => {
-                          console.log('Got characteristic:', characteristic);
-
-                          characteristic.addEventListener('characteristicvaluechanged', (event: any) => {
-                            const value = event.target.value;
-                            // Create Uint8Array from the DataView with proper length
-                            const data = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-                            
-                            // Find the actual length by looking for null terminator
-                            let actualLength = data.length;
-                            for (let i = 0; i < data.length; i++) {
-                              if (data[i] === 0) {
-                                actualLength = i;
-                                break;
-                              }
-                            }
-                            
-                            // Convert Uint8Array to string and parse as JSON
-                            const decoder = new TextDecoder();
-                            const jsonString = '{' + decoder.decode(data.slice(0, actualLength)) + '}';
-
-                            try {
-                              console.log('Received config data:', jsonString, value);
-                              const configObj = JSON.parse(jsonString);
-                              for (const [key, val] of Object.entries(configObj)) {
-                                if (key in settings) {
-                                  settings[key as keyof typeof settings].value = val as number;
-                                }
-                              }
-                            } catch (error) {
-                              console.error('Error parsing config JSON:', error, jsonString);
-                            }
-                          });
-
-                          characteristic.startNotifications().then(() => {
-                            console.log('Notifications started for characteristic:', characteristic.uuid);
-                            sendConfigRequest();
-                          });
-
-                        });
-
-
-                      })
-                      .catch((error: any) => {
-                        console.error('Error getting primary service:', error);
-                      });
-                    })
-                    .catch((error: any) => {
-                      console.error('Error connecting to GATT server:', error);
-                    });
-                })
-                .catch((error: any) => {
-                  console.error(error);
-                });
-            }
-
-          }}
+          onclick={() => {btConnect();}}
           class="topButton"
           style={bt ? (isBtConnected ? "background-color: #10b030; border-color: #30e060;" : "background-color: #3a6dc1; border-color: #0a3d91;") : "background-color: darkred; border-color: darkred;"}
           aria-label="Connect via bluetooth" 
@@ -1169,11 +1181,11 @@
           style="border-color: orange; color: orange;" role="none"
         >
           Pleasure: {Math.floor(
-            (lastNumericValue($state.snapshot(readings), "pleasure") / maxY) *
+            (lastNumericValue("pleasure") / maxY) *
               100,
           )
             ? Math.round(
-                (lastNumericValue($state.snapshot(readings), "pleasure") / maxY) *
+                (lastNumericValue("pleasure") / maxY) *
                   99,
               ).toString() + "%"
             : "DENIED!"}
@@ -1186,7 +1198,7 @@
           style="border-color: red; color: red;" role="none"
         >
           Arousal: {Math.floor(
-            (lastNumericValue($state.snapshot(readings), "arousal") / maxY) * 100,
+            (lastNumericValue("arousal") / maxY) * 100,
           )} %
         </div>
 
@@ -1196,7 +1208,7 @@
           }}
         style="border-color: #FF7FFF; color: #FF7FFF;" role="none"
         >
-          {settings.vibration_mode.value === 3 ? 'Orgasms' : 'Denied'}: {lastNumericValue($state.snapshot(readings), "denied")}
+          {settings.vibration_mode.value === 3 ? 'Orgasms' : 'Denied'}: {lastNumericValue("denied")}
         </div>
 
         <div class="statBoxButton" title="Click to apply pressure!"
@@ -1205,7 +1217,7 @@
           }}
         style="border-color: green; color: green;" role="none"
         >
-          Pressure: {Math.round(lastNumericValue($state.snapshot(readings), "pressure") / maxY * 100)} %
+          Pressure: {Math.round(lastNumericValue("pressure") / maxY * 100)} %
         </div>
 
       </div>
@@ -1235,7 +1247,7 @@
               stroke-dashoffset={2 * Math.PI * 85 * (1 - currentPleasure / settings.max_pleasure.value)}
               transform="rotate(90 100 100)"
               stroke-linecap="round"
-              class={lastNumericValue($state.snapshot(readings), "cooldown") == 0 && lastNumericValue($state.snapshot(readings), "pleasure") > 0 ? "cooldown-flash-stroke-orange" : ""}
+              class={lastNumericValue("cooldown") == 0 && lastNumericValue("pleasure") > 0 ? "cooldown-flash-stroke-orange" : ""}
               />
               <text
               x="100"
@@ -1245,7 +1257,7 @@
               fill="orange"
               font-size="48"
               font-weight="bold"
-              class={lastNumericValue($state.snapshot(readings), "cooldown") == 0 && lastNumericValue($state.snapshot(readings), "pleasure") > 0 ? "cooldown-flash-text-orange" : ""}
+              class={lastNumericValue("cooldown") == 0 && lastNumericValue("pleasure") > 0 ? "cooldown-flash-text-orange" : ""}
               >
               
               {Math.round((currentPleasure / settings.max_pleasure.value) * 100)}%
@@ -1258,7 +1270,7 @@
             fill="orange"
             font-size="16"
             font-weight="bold"
-            class={lastNumericValue($state.snapshot(readings), "cooldown") == 0 && lastNumericValue($state.snapshot(readings), "pleasure") > 0 ? "cooldown-flash-text-orange" : ""}
+            class={lastNumericValue("cooldown") == 0 && lastNumericValue("pleasure") > 0 ? "cooldown-flash-text-orange" : ""}
             >
             Pleasure
           </text>
@@ -1293,10 +1305,10 @@
                 stroke="red"
                 stroke-width="20"
                 stroke-dasharray={2 * Math.PI * 85}
-                stroke-dashoffset={2 * Math.PI * 85 * (1 - lastNumericValue($state.snapshot(readings), "arousal") / maxY)}
+                stroke-dashoffset={2 * Math.PI * 85 * (1 - Math.min(1.0,lastNumericValue("arousal") / maxY))}
                 transform="rotate(90 100 100)"
                 stroke-linecap="round"
-                class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-stroke" : ""}
+                class={lastNumericValue("cooldown") > 0 ? "cooldown-flash-stroke" : ""}
               />
               <line
                 x1="100"
@@ -1305,8 +1317,8 @@
                 y2="0"
                 stroke="#FF6666"
                 stroke-width="4"
-                class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-stroke" : ""}
-                transform="rotate({(lastNumericValue($state.snapshot(readings), "threshold") / maxY) * 360 - 180} 100 100)"
+                class={lastNumericValue("cooldown") > 0 ? "cooldown-flash-stroke" : ""}
+                transform="rotate({(lastNumericValue("threshold") / maxY) * 360 - 180} 100 100)"
               />
               <text
                 x="100"
@@ -1316,9 +1328,9 @@
                 fill="red"
                 font-size="48"
                 font-weight="bold"
-                class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-text" : ""}
-                >
-                {Math.round(lastNumericValue($state.snapshot(readings), "arousal") / maxY * 100)}%
+                class={lastNumericValue("cooldown") > 0 ? "cooldown-flash-text" : ""}
+              >
+                {Math.round(lastNumericValue("arousal") / maxY * 100)}%
               </text>
               <text
                 x="100"
@@ -1328,10 +1340,10 @@
                 fill="red"
                 font-size="16"
                 font-weight="bold"
-                class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-text" : ""}
+                class={lastNumericValue("cooldown") > 0 ? "cooldown-flash-text" : ""}
               >
-              Arousal
-            </text>
+                Arousal
+              </text>
             
             
           </svg>
@@ -1366,10 +1378,10 @@
                 stroke="#FF7FFF"
                 stroke-width="20"
                 stroke-dasharray={2 * Math.PI * 85}
-                stroke-dashoffset={2 * Math.PI * 85 * (1 - lastNumericValue($state.snapshot(readings), "denied") / maxDenied)}
+                stroke-dashoffset={2 * Math.PI * 85 * (1 - lastNumericValue("denied") / maxDenied)}
                 transform="rotate(90 100 100)"
                 stroke-linecap="round"
-                class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-stroke-pink" : ""}
+                class={lastNumericValue("cooldown") > 0 ? "cooldown-flash-stroke-pink" : ""}
               />
               <text
                 x="100"
@@ -1379,9 +1391,9 @@
                 fill="#FF7FFF"
                 font-size="48"
                 font-weight="bold"
-                class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-text-pink" : ""}
+                class={lastNumericValue("cooldown") > 0 ? "cooldown-flash-text-pink" : ""}
               >
-                {lastNumericValue($state.snapshot(readings), "denied")}
+                {lastNumericValue("denied")}
               </text>
               <text
                 x="100"
@@ -1391,7 +1403,7 @@
                 fill="#FF7FFF"
                 font-size="16"
                 font-weight="bold"
-                class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "cooldown-flash-text-pink" : ""}
+                class={lastNumericValue("cooldown") > 0 ? "cooldown-flash-text-pink" : ""}
               >
                 Denied
               </text>
@@ -1425,7 +1437,7 @@
                 stroke="green"
                 stroke-width="20"
                 stroke-dasharray={2 * Math.PI * 85}
-                stroke-dashoffset={2 * Math.PI * 85 * (1 - lastNumericValue($state.snapshot(readings), "pressure") / maxY)}
+                stroke-dashoffset={2 * Math.PI * 85 * (1 - lastNumericValue("pressure") / maxY)}
                 transform="rotate(90 100 100)"
                 stroke-linecap="round"
               />
@@ -1438,7 +1450,7 @@
                 font-size="48"
                 font-weight="bold"
               >
-                {Math.round(lastNumericValue($state.snapshot(readings), "pressure") / maxY * 100)}%
+                {Math.round(lastNumericValue("pressure") / maxY * 100)}%
               </text>
               <text
                 x="100"
@@ -1465,7 +1477,7 @@
         </div>
 
       </div>
-      <div class={lastNumericValue($state.snapshot(readings), "cooldown") > 0 ? "statusText cooldown-flash-text" : "statusText"}>
+      <div class={lastNumericValue("cooldown") > 0 ? "statusText cooldown-flash-text" : "statusText"}>
         {$state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode == "MANUAL" ? "MANUALLY CONTROLLING PLEASURE" : (edgeStatusText().length > 0 ? edgeStatusText() : "INCREASING PLEASURE")}
       </div>
     </div>
@@ -1537,7 +1549,7 @@
     <div class="settingSliders">
       {#if $state.snapshot(readings)[$state.snapshot(readings).length - 1].runMode === 'MANUAL'}
       <label for="pleasure" style="color:orange">Pleasure: {Math.floor(
-                (lastNumericValue($state.snapshot(readings), "pleasure") / maxY) *
+                (lastNumericValue("pleasure") / maxY) *
                   100,
               )} %</label>
       <input

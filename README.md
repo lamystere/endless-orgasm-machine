@@ -113,7 +113,6 @@ This project was first vastly simplified then expanded with compatibility in min
 - LED options.. (Blink until connected, rgb stuff?)
 - bluetooth battery level
 - finish integrated screen support / ip display
-- Is pressure multiplier working as intended?
 - add build walkthrough to docs and more examples, pinouts and schematics
 - ui and websockets using same endpoint if possible
 - logging from the app
@@ -123,6 +122,7 @@ This project was first vastly simplified then expanded with compatibility in min
 - make motor pin selection more intuitive
 - Put some effort into UI styling
 - disable internal motor control option?
+- arousal overflows on hardware side
 - Implement patterns?  That's a biggie
 - Running average math seems off
 
@@ -143,7 +143,7 @@ This project was first vastly simplified then expanded with compatibility in min
 - edge times are in seconds
 
 ## Standing on the shoulders of giants
-This is a product of the open source community.  This will always be open source.  Sharing knowledge this way goes back to patent offices, or perhaps cave-man fire.  Sometimes the term can be abused by making things appear open when key information is obfuscated or taking formerly open repositories offline...that practice of monetizing is also as old as time.  No shame.  Open-source doesn't mean no profiting. This particular project intends to focus on information sharing and DIY accessibility as much as functionality.  You should be always be able to build this yourself if you have the free time.  I hope the open-source community can elevate this project and make it even more useful than I am capable of.
+This is a product of the open source community.  This will always be open source.  Sharing knowledge this way goes back to patent offices, or perhaps cave-man fire.  Sometimes the term can be abused by making things appear open when key information is obfuscated or by taking formerly open repositories offline...that practice of monetizing is also as old as time.  No shame.  Open-source doesn't mean no profiting and I'll try to make some money too. However this particular project intends to focus on information sharing and DIY accessibility as much as functionality.  You should be always be able to build this yourself if you have the free time.  That may not be the most profitable route but I hope the open-source community can elevate this project and make it even more useful than I am capable of.
 
 ## Contribution and Inspiration from:
 
