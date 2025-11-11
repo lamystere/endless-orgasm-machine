@@ -15,9 +15,18 @@ Using an inflatable butt plug to detect pressure changes indicative of pelvic fl
 
 Having to wait for it while being right at the edge makes it more intense!  Trying to resist getting close is a turn-on for some.  When you're ready to end the edging you can use "Control: Orgasm" to allow you to finish after a chosen number of minutes or near-orgasms... if you've had enough simply set it to "Control: Manual" and take care of things manually.  It can also be used after orgasms to determine exactly when the refractory period has subsided enough to begin the next round of pleasuring. 
 
-![Screenshot](doc/Screenshot.png)
+![Screenshot](doc/Screenshot.png) 
 
-## Building 
+### So how do I get one
+Well, I'll get a store together eventually but for now you'll have to build it yourself.  These instructions are meant to make the simplest build possible so you can get playing. 
+
+## Hardware
+STLs are in the [/hardware(/hardware)] directory. (just one for now)
+Also included are the source files for customizing your own plug.  They are designed in [OpenSCAD(https://openscad.org/)], which may not be the easiest cad program to work with but its completely open-source and easily sharable for customization.
+
+If you go with an inflatable plug you're on your own...There are not yet any files for enclosing the electronics and securing them...there are a million different products you could buy anyways so nothing could be made to fit.  If there is demand I'll post a simple box.
+
+## Building the software
 - Install [VSCode](https://code.visualstudio.com/) with the [PlatformIO](https://platformio.org/) extension
 - Open this repo and let all the PlatformIO dependencies download
 - Configure your wifi ssid and password at the top of [data/config.json](data/config.json) or skip this step to let it broadcast its own access point: ```EOM```.  You can have it both ways: Set it up to connect to your home wifi but if you're away EOM will go into access point mode after it fails to find it.
@@ -101,17 +110,19 @@ This project was first vastly simplified then expanded with compatibility in min
 - do canvas drawing to offscreen element for efficiency
 - audio buzzer for cooldown!
 - add a config save button so setting changes aren't immediately permanent
+- LED options.. (Blink until connected, rgb stuff?)
+- bluetooth battery level
 - finish integrated screen support / ip display
 - Is pressure multiplier working as intended?
 - add build walkthrough to docs and more examples, pinouts and schematics
 - ui and websockets using same endpoint if possible
 - logging from the app
+- bluetooth OTA
 - add X axis on chart (seconds)
 - chart glitch on left side at startup
 - make motor pin selection more intuitive
 - Put some effort into UI styling
 - disable internal motor control option?
-- LED and encoder options? (Blink until connected)
 - Implement patterns?  That's a biggie
 - Running average math seems off
 
