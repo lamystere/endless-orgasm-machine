@@ -1,5 +1,4 @@
 #include "config_defs.h"
-//#include "SDHelper.h"
 #include "api/broadcast.h"
 #include "config.h"
 #include "eom-hal-esp32.h"
@@ -7,8 +6,6 @@
 #include "esp_log.h"
 #include "nvs.h"
 #include "polyfill.h"
-//#include "ui/toast.h"
-#include "util/i18n.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <stddef.h>

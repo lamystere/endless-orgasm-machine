@@ -43,6 +43,7 @@ extern "C" {
 #define PRESSURE_SMOOTHING_HELP _HELPSTR("Number of samples to take an average of. Higher results in lag and lower resolution!")
 #define CLASSIC_SERIAL_HELP _HELPSTR("Output continuous stream of arousal data over serial for backwards compatibility with other software.")
 #define SENSITIVITY_THRESHOLD_HELP _HELPSTR("The arousal threshold for orgasm detection. Lower values stop sooner.")
+#define MID_THRESHOLD_HELP _HELPSTR("The start of the warning zone for approaching arousal.  Changes lights to yellow.")
 #define UPDATE_FREQUENCY_HZ_HELP _HELPSTR("Update frequency for pressure readings and arousal steps. Higher = crash your serial monitor.")
 #define SENSOR_SENSITIVITY_HELP _HELPSTR("Analog pressure prescaling. Please see instruction manual.")
 #define USE_AVERAGE_VALUES_HELP _HELPSTR("Use average values when calculating arousal. This smooths noisy data.")

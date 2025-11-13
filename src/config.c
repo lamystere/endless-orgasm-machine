@@ -6,6 +6,7 @@
 static const char* TAG = "config";
 
 config_t Config = { ._filename = "", ._version = 0 };
+bool isConnected = false;
 
 CONFIG_DEFS {
     // WiFi Settings
@@ -48,7 +49,8 @@ CONFIG_DEFS {
     CFG_NUMBER(max_additional_delay, 10);
     CFG_NUMBER(minimum_on_time, 1);
     CFG_NUMBER(pressure_smoothing, 10);
-    CFG_NUMBER(sensitivity_threshold, 1000);
+    CFG_NUMBER(sensitivity_threshold, 1024);
+    CFG_NUMBER(mid_threshold, 512);
     CFG_NUMBER(motor_ramp_time_s, 120);
     CFG_NUMBER(update_frequency_hz, 50);
     CFG_NUMBER(sensor_sensitivity, 3);

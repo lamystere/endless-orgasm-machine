@@ -33,13 +33,23 @@ static const char* CONFIG_FILENAME = "/spiffs/config.json";
 #define GATTS_INPUT1_CHAR_UUID     0x6003
 #define GATTS_INPUT2_CHAR_UUID     0x6004
 
-#define PRESSURE_PIN 14
-#define LED_PIN 2 // On-board LED for ESP32 dev boards
+//which pin to read analog pressure sensor from
+#define PRESSURE_GPIO ADC_CHANNEL_0
+//This can accept any ADC_UNIT_1 channel...so ADC_CHANNEL_0 to ADC_CHANNEL_7
+//ADC_CHANNEL_0 is gpio 1 on Waveshare ESP32-S3, labeled 1
+//ADC_CHANNEL_0 is gpio 36 on NodeMCU ESP32S, labeled SVP. (another channel might be more accurate)
+//ADC_CHANNEL_0 is gpio 36 on Wroom32, labeled VP
+//ADC_CHANNEL_0 is gpio 0 on Waveshare ESP32-C6-LCD-1.47 labeled 0 (LED pin is 8)
+//ADC_CHANNEL_0 is gpio 0 on Xaio Seed ESP32-S3, labeled D0 
+
+//#define LED_GPIO 2 // This is handled per board in platformio.ini now
 
 #define EOM_HAL_PRESSURE_MAX 0x0FFF // 12 bits ADC reading is standard for esp32
 
 #define DEFAULT_AMBIENT_RESSURE 0
 #define DEFAULT_PRESSURE_SENSITIVITY 3
+
+extern bool isConnected;
 
 enum command_err {
     CMD_FAIL = -1,
@@ -162,6 +172,8 @@ struct config {
     // The arousal threshold for orgasm detection. Lower = sooner cutoff.
     uint16_t sensitivity_threshold;
     // The time it takes for the motor to reach `max_pleasure` in auto ramp mode.
+    uint16_t mid_threshold;
+    // The start of the warning zone for approaching arousal.  Changes lights to yellow.
     uint8_t motor_ramp_time_s;
     // Update frequency for pressure readings and arousal steps. Higher = crash your serial monitor.
     uint8_t update_frequency_hz;

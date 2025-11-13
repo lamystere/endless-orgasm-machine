@@ -27,7 +27,8 @@ Here is a quick summary of config variables:
 |`minimum_on_time`|Int|1|Time (s) after stimulation starts before edge detection is resumed.|
 |`pressure_smoothing`|Byte|5|Number of samples to take an average of. Higher results in lag and lower resolution!|
 |`classic_serial`|Boolean|false|Output continuous stream of arousal data over serial for backwards compatibility with other software.|
-|`sensitivity_threshold`|Int|600|The arousal threshold for orgasm detection. Lower values stop sooner.|
+|`sensitivity_threshold`|12 bit Int (4096)|1024|The arousal threshold for orgasm detection. Lower values stop sooner.|
+|`mid_threshold`|12 bit Int (4096)|512| The start of the warning zone for approaching arousal.  Changes lights to yellow.|
 |`update_frequency_hz`|Int|50|Update frequency for pressure readings and arousal steps. Higher = crash your serial monitor.|
 |`sensor_sensitivity`|Byte|128|Analog pressure prescaling. Please see instruction manual.|
 |`use_average_values`|Boolean|false|Use average values when calculating arousal. This smooths noisy data.|

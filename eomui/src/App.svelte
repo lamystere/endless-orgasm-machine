@@ -37,6 +37,29 @@
     threshold: number;
   };
 
+    let readings = $state([
+    {
+      pressure: 4000,
+      arousal: 4000,
+      motor: 255,
+      threshold: 3950,
+      denied: 19,
+      runMode: "ENDLESS",
+      localTime: Date.now(),
+    } as eomReading,  
+    {
+      pressure: 0,
+      arousal: 0,
+      motor: 0,
+      threshold: 0,
+      denied: 0,
+      runMode: "ENDLESS",
+      localTime: 0,
+    } as eomReading,
+  ]) as eomReading[]; //initial dummy data
+
+
+
   type settingType = {
     value: number;
     min: number;
@@ -48,6 +71,7 @@
 
   type eomSettings = {
     sensitivity_threshold: settingType;
+    mid_threshold: settingType;
     vibration_mode: settingType;
     max_pleasure: settingType;
     motor_ramp_time_s: settingType;
@@ -108,12 +132,20 @@
 
   let settings = $state({
     sensitivity_threshold: {
-      value: 1000,
+      value: 1024,
       min: 0,
       max: 4096,
       label: "Arousal Edge Threshold",
       type: "%",
       description: "The arousal threshold for orgasm detection. Lower values stop sooner. Everyone will have their own ideal setting here.",
+    },
+    mid_threshold: {
+      value: 0,
+      min: 0,
+      max: lastNumericValue("threshold"),
+      label: "Arousal Mid Threshold",
+      type: "%",
+      description: "The start of the warning zone for approaching arousal.  Changes lights to yellow.",
     },
     vibration_mode: { 
       value: 2, 
@@ -304,10 +336,11 @@
   
   let modalSettings: string[] = [
     //"wifi_on",
+    "max_denied",
     "max_additional_delay",
     "max_pleasure",
+    "mid_threshold",
     "initial_pleasure",
-    "max_denied",
     "minimum_on_time",
     "pressure_smoothing",
     "update_frequency_hz",
@@ -320,28 +353,6 @@
     "use_post_orgasm",
     "use_average_values",
   ];
-
-  //let threshold: number = $state(1000) as number;
-  let readings = $state([
-    {
-      pressure: 4000,
-      arousal: 4000,
-      motor: 255,
-      threshold: 3950,
-      denied: 19,
-      runMode: "ENDLESS",
-      localTime: Date.now(),
-    } as eomReading,  
-    {
-      pressure: 0,
-      arousal: 0,
-      motor: 0,
-      threshold: 0,
-      denied: 0,
-      runMode: "ENDLESS",
-      localTime: 0,
-    } as eomReading,
-  ]) as eomReading[]; //initial dummy data
 
   let lines: Record<string, [string, number]> = {
     pleasure: ["orange", 3],
@@ -1310,6 +1321,16 @@
                 stroke-linecap="round"
                 class={lastNumericValue("cooldown") > 0 ? "cooldown-flash-stroke" : ""}
               />
+              <line
+                x1="100"
+                y1="50"
+                x2="100"
+                y2="0"
+                stroke="#EEDD33"
+                stroke-width="4"
+                transform="rotate({(settings["mid_threshold"].value / maxY) * 360 - 180} 100 100)"
+              />
+
               <line
                 x1="100"
                 y1="50"

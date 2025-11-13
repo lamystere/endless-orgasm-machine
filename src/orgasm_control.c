@@ -247,8 +247,8 @@ static void orgasm_control_update_pleasure() {
         ESP_LOGI(TAG, "Orgasm Denied! Total: %d", orgasm_state.orgasm_count);
         
         //event_manager_dispatch(EVT_ORGASM_DENIAL, NULL, 0);
-        eom_hal_set_led(1); // Turn on LED when orgasm detected
-
+        eom_hal_set_rgb_color(&rgb_red); // Red over threshold
+        eom_hal_set_led_flashing(1);
         // If Max Additional Delay is not disabled, caculate a new delay for the next time pleasure is stopped
         if (Config.max_additional_delay  != 0) {
             output_state.random_additional_delay = random() % (Config.max_additional_delay * 1000);
@@ -261,11 +261,29 @@ static void orgasm_control_update_pleasure() {
         output_state.motor_start_time = (esp_timer_get_time() / 1000UL);
         output_state.random_additional_delay = 0;
         arousal_state.update_flag = ocTRUE;
-        eom_hal_set_led(0); // Turn off LED when motor starts
+        if (isConnected) {
+            eom_hal_set_rgb_color(&rgb_green); // Green when starting
+        } else {
+            eom_hal_set_rgb_color(&rgb_purple); // Purple when starting unconnected
+        }
+        eom_hal_set_led_flashing(0);
         ESP_LOGI(TAG, "Starting cycle: %d", orgasm_state.orgasm_count + 1);
     } else {
         // Normal pleasure mode...Increment or Change
         update_check(output_state.pleasure, controller->increment());
+
+        if (arousal_state.arousal < Config.mid_threshold) {
+            RGBColor fadedColor;
+            if (isConnected) {
+                 fadedColor = calculate_fade_color(rgb_green, rgb_orange, (float)arousal_state.arousal / Config.mid_threshold);
+            } else {
+                 fadedColor = calculate_fade_color(rgb_purple, rgb_orange, (float)arousal_state.arousal / Config.mid_threshold);
+            }
+            eom_hal_set_rgb(fadedColor.r, fadedColor.g, fadedColor.b);
+        } else {
+            RGBColor fadedColor = calculate_fade_color(rgb_orange, rgb_red, (float)(arousal_state.arousal - Config.mid_threshold) / (Config.sensitivity_threshold - Config.mid_threshold));
+            eom_hal_set_rgb(fadedColor.r, fadedColor.g, fadedColor.b);
+        }
     }
 
     // Control pleasure if we are not manually doing so.
@@ -409,6 +427,14 @@ void orgasm_control_twitch_detect() {
     if (arousal_state.arousal > Config.sensitivity_threshold) {
         output_state.motor_stop_time = (esp_timer_get_time() / 1000UL);
         arousal_state.cooldown = (Config.edge_delay * 1000) + output_state.random_additional_delay;
+        eom_hal_set_rgb_color(&rgb_red); // Red over threshold
+        eom_hal_set_led_flashing(1);
+
+    } else {
+        //fade out red flash
+        RGBColor fadedColor = calculate_fade_color(rgb_off,rgb_red, ((float)arousal_state.cooldown / (float)((Config.edge_delay * 1000) + output_state.random_additional_delay)));
+        eom_hal_set_rgb(fadedColor.r, fadedColor.g, fadedColor.b);
+        //eom_hal_set_led_flashing(0);
     }
 }
 

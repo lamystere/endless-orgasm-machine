@@ -164,8 +164,14 @@ void app_main() {
 
     spiffs_init();
     config_init();
+    eom_hal_led_init();
+    eom_hal_set_rgb_color(&rgb_blue);  // Blue = Starting up
+    //eom
     orgasm_control_init();
-    eom_hal_init_motor();
+
+    if (MOTOR1_ENABLED || MOTOR2_ENABLED) {
+        eom_hal_init_motor();
+    }
 
 
     printf("Lamystere presents the Endless Orgasm Machine\n");

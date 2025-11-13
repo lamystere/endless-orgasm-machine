@@ -1,5 +1,6 @@
 #include "gap.h"
 #include "gatt_svc.h"
+#include "eom-hal-esp32.h"
 static const char* TAG = "ble_gap";
 
 
@@ -168,9 +169,16 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg) {
                     rc);
                 return rc;
             }
+            isConnected = true;
+            eom_hal_set_rgb_color(&rgb_green);  // Green = Connected
+
         }
         /* Connection failed, restart advertising */
         else {
+            isConnected = false;
+            eom_hal_set_rgb_color(&rgb_purple);  // Purple = Advertising started
+
+
             start_advertising();
         }
         return rc;
@@ -182,6 +190,9 @@ static int gap_event_handler(struct ble_gap_event *event, void *arg) {
                  event->disconnect.reason);
 
         /* Restart advertising */
+        isConnected = false;
+        eom_hal_set_rgb_color(&rgb_purple);  // Purple = Advertising started
+
         start_advertising();
         return rc;
 
